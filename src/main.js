@@ -15,6 +15,7 @@ import {
 
 const app = document.getElementById('app');
 const status = document.getElementById('status');
+const contextMenu = document.getElementById('context-menu');
 const newSceneButton = document.getElementById('new-scene');
 const saveJsonButton = document.getElementById('save-json');
 const loadJsonButton = document.getElementById('load-json');
@@ -54,6 +55,11 @@ controls.target.set(0, 0, 0);
 controls.maxPolarAngle = Math.PI * 0.48;
 controls.minDistance = 4;
 controls.maxDistance = 80;
+controls.mouseButtons = {
+  LEFT: THREE.MOUSE.ROTATE,
+  MIDDLE: THREE.MOUSE.PAN,
+  RIGHT: null,
+};
 
 const ambientLight = new THREE.AmbientLight(0xffffff, 1.6);
 scene.add(ambientLight);
@@ -131,6 +137,7 @@ function simplifyTransformGizmo() {
 simplifyTransformGizmo();
 
 let lastGroundHit = { x: 0, y: 0, z: 0 };
+let contextSpawnPosition = null;
 let selectedObjectId = null;
 let selectedMesh = null;
 let isDraggingObject = false;
@@ -313,21 +320,33 @@ function syncSelectedObjectFromMesh() {
   updatePropertiesPanel();
 }
 
-function spawnObject(type) {
+function spawnObject(type, position = lastGroundHit) {
   if (!catalog[type]) {
     console.warn(`Unknown object type: ${type}`);
     return;
   }
 
   const object = addObject(type, {
-    x: snapToGrid(lastGroundHit.x),
-    y: 0,
-    z: snapToGrid(lastGroundHit.z),
+    x: snapToGrid(position.x),
+    y: position.y ?? 0,
+    z: snapToGrid(position.z),
   });
 
   renderObjects();
   selectObject(object.id);
   status.textContent = `Added ${catalog[type].label}`;
+}
+
+function showContextMenu(event, position) {
+  contextSpawnPosition = position;
+  contextMenu.hidden = false;
+  contextMenu.style.left = `${event.clientX}px`;
+  contextMenu.style.top = `${event.clientY}px`;
+}
+
+function hideContextMenu() {
+  contextMenu.hidden = true;
+  contextSpawnPosition = null;
 }
 
 function saveJson() {
@@ -449,6 +468,12 @@ function isUsingTransformControls() {
 }
 
 function onPointerDown(event) {
+  hideContextMenu();
+
+  if (event.button !== 0) {
+    return;
+  }
+
   if (isUsingTransformControls()) {
     return;
   }
@@ -489,7 +514,32 @@ function onPointerUp() {
 
 renderer.domElement.addEventListener('pointermove', updatePointer);
 renderer.domElement.addEventListener('pointerdown', onPointerDown, { capture: true });
+renderer.domElement.addEventListener('contextmenu', (event) => {
+  event.preventDefault();
+  const hit = getGroundHit(event);
+
+  if (!hit) {
+    hideContextMenu();
+    return;
+  }
+
+  showContextMenu(event, {
+    x: hit.point.x,
+    y: 0,
+    z: hit.point.z,
+  });
+});
 window.addEventListener('pointerup', onPointerUp);
+window.addEventListener('click', (event) => {
+  if (!contextMenu.contains(event.target)) {
+    hideContextMenu();
+  }
+});
+window.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    hideContextMenu();
+  }
+});
 
 transformControls.addEventListener('dragging-changed', (event) => {
   controls.enabled = !event.value;
@@ -502,6 +552,13 @@ transformControls.addEventListener('objectChange', () => {
 document.querySelectorAll('[data-add-object]').forEach((button) => {
   button.addEventListener('click', () => {
     spawnObject(button.dataset.addObject);
+  });
+});
+
+document.querySelectorAll('[data-context-add]').forEach((button) => {
+  button.addEventListener('click', () => {
+    spawnObject(button.dataset.contextAdd, contextSpawnPosition ?? lastGroundHit);
+    hideContextMenu();
   });
 });
 
