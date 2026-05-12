@@ -37,6 +37,7 @@
           <button data-add-object="hip">Hip</button>
           <button data-add-object="volcano">Volcano</button>
           <button data-add-object="bank">Bank</button>
+          <button data-add-object="pyramid">Pyramid</button>
         </aside>
         <main id="app"></main>
         <aside class="right-panel">
@@ -88,7 +89,7 @@
               <input id="prop-degrees" data-prop="params.degrees" type="number" min="1" max="180" step="1" />
             </label>
             <label id="prop-top-radius-row" hidden>
-              Top Radius
+              <span id="prop-top-radius-label">Top Radius</span>
               <input id="prop-top-radius" data-prop="params.topRadius" type="number" min="0" step="0.1" />
             </label>
             <div class="property-actions">
@@ -111,6 +112,7 @@
       <button data-context-add="hip" type="button">Add Hip</button>
       <button data-context-add="volcano" type="button">Add Volcano</button>
       <button data-context-add="bank" type="button">Add Bank</button>
+      <button data-context-add="pyramid" type="button">Add Pyramid</button>
     </div>
     <script type="module" src="./src/main.js"></script>
   </body>

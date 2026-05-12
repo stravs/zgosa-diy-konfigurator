@@ -40,6 +40,7 @@ const propDegreesRow = document.getElementById('prop-degrees-row');
 const propDegreesLabel = document.getElementById('prop-degrees-label');
 const propDegrees = document.getElementById('prop-degrees');
 const propTopRadiusRow = document.getElementById('prop-top-radius-row');
+const propTopRadiusLabel = document.getElementById('prop-top-radius-label');
 const propTopRadius = document.getElementById('prop-top-radius');
 const moveToolButton = document.getElementById('move-tool');
 const rotateToolButton = document.getElementById('rotate-tool');
@@ -213,7 +214,7 @@ function updatePropertiesPanel() {
   propZ.value = object.position.z.toFixed(2);
   propY.value = object.position.y.toFixed(2);
   propRotation.value = THREE.MathUtils.radToDeg(object.rotation.y).toFixed(0);
-  propWidthRow.hidden = object.type === 'hip' || object.type === 'volcano' || object.type === 'bank';
+  propWidthRow.hidden = object.type === 'hip' || object.type === 'volcano' || object.type === 'bank' || object.type === 'pyramid';
   propWidth.value = object.params.width ?? '';
   propHeight.value = object.params.height;
 
@@ -221,8 +222,8 @@ function updatePropertiesPanel() {
     propDepthLabel.textContent = 'Radius';
     propDepth.dataset.prop = 'params.radius';
     propDepth.value = object.params.radius ?? object.params.depth ?? 2;
-  } else if (object.type === 'bank') {
-    propDepthLabel.textContent = 'Length';
+  } else if (object.type === 'bank' || object.type === 'pyramid') {
+    propDepthLabel.textContent = object.type === 'pyramid' ? 'Bank Length' : 'Length';
     propDepth.dataset.prop = 'params.length';
     propDepth.value = object.params.length;
   } else {
@@ -241,8 +242,12 @@ function updatePropertiesPanel() {
   propDegreesLabel.textContent = object.type === 'hip' ? 'Sweep Angle' : 'Degrees';
   propDegrees.value = object.params.degrees ?? 90;
 
-  propTopRadiusRow.hidden = object.type !== 'volcano';
-  propTopRadius.value = object.params.topRadius ?? 0.6;
+  propTopRadiusRow.hidden = object.type !== 'volcano' && object.type !== 'pyramid';
+  propTopRadiusLabel.textContent = object.type === 'pyramid' ? 'Top Size' : 'Top Radius';
+  propTopRadius.dataset.prop = object.type === 'pyramid' ? 'params.topSize' : 'params.topRadius';
+  propTopRadius.value = object.type === 'pyramid'
+    ? object.params.topSize ?? 1.2
+    : object.params.topRadius ?? 0.6;
 }
 
 function applyPropertyChange(input) {
@@ -278,6 +283,8 @@ function applyPropertyChange(input) {
     object.params.degrees = THREE.MathUtils.clamp(value, 1, 180);
   } else if (input.dataset.prop === 'params.topRadius') {
     object.params.topRadius = Math.max(0, value);
+  } else if (input.dataset.prop === 'params.topSize') {
+    object.params.topSize = Math.max(0, value);
   } else if (input.dataset.prop === 'params.length') {
     object.params.length = Math.max(0.1, value);
   }

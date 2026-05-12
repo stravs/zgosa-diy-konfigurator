@@ -6,6 +6,7 @@ import { createCorner } from './corner.js';
 import { createHip } from './hip.js';
 import { createVolcano } from './volcano.js';
 import { createBank } from './bank.js';
+import { createPyramid } from './pyramid.js';
 
 export const catalog = {
   box: {
@@ -43,6 +44,10 @@ export const catalog = {
   bank: {
     label: 'Bank',
     createMesh: createBank,
+  },
+  pyramid: {
+    label: 'Pyramid',
+    createMesh: createPyramid,
   },
 };
 

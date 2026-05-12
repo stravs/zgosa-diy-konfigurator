@@ -146,5 +146,9 @@ function getDefaultParams(type) {
     return { width: 2.4, height: 0.8, length: 2.4 };
   }
 
+  if (type === 'pyramid') {
+    return { height: 0.8, length: 2.0, topSize: 1.2 };
+  }
+
   throw new Error(`Unknown object type: ${type}`);
 }
