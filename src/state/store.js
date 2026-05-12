@@ -142,5 +142,9 @@ function getDefaultParams(type) {
     return { height: 1.2, radius: 2.0, topRadius: 0.6 };
   }
 
+  if (type === 'bank') {
+    return { width: 2.4, height: 0.8, length: 2.4 };
+  }
+
   throw new Error(`Unknown object type: ${type}`);
 }

@@ -213,7 +213,7 @@ function updatePropertiesPanel() {
   propZ.value = object.position.z.toFixed(2);
   propY.value = object.position.y.toFixed(2);
   propRotation.value = THREE.MathUtils.radToDeg(object.rotation.y).toFixed(0);
-  propWidthRow.hidden = object.type === 'hip' || object.type === 'volcano';
+  propWidthRow.hidden = object.type === 'hip' || object.type === 'volcano' || object.type === 'bank';
   propWidth.value = object.params.width ?? '';
   propHeight.value = object.params.height;
 
@@ -221,6 +221,10 @@ function updatePropertiesPanel() {
     propDepthLabel.textContent = 'Radius';
     propDepth.dataset.prop = 'params.radius';
     propDepth.value = object.params.radius ?? object.params.depth ?? 2;
+  } else if (object.type === 'bank') {
+    propDepthLabel.textContent = 'Length';
+    propDepth.dataset.prop = 'params.length';
+    propDepth.value = object.params.length;
   } else {
     propDepthLabel.textContent = 'Depth';
     propDepth.dataset.prop = 'params.depth';
@@ -274,6 +278,8 @@ function applyPropertyChange(input) {
     object.params.degrees = THREE.MathUtils.clamp(value, 1, 180);
   } else if (input.dataset.prop === 'params.topRadius') {
     object.params.topRadius = Math.max(0, value);
+  } else if (input.dataset.prop === 'params.length') {
+    object.params.length = Math.max(0.1, value);
   }
 
   renderObjects();
