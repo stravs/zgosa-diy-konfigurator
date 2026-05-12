@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { catalog, createObjectMesh } from './catalog/index.js';
-import { addObject, state } from './state/store.js';
+import { addObject, getObjectById, state } from './state/store.js';
 
 const app = document.getElementById('app');
 const status = document.getElementById('status');
@@ -72,7 +72,16 @@ scene.add(marker);
 
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
+const objectMeshes = new Map();
+const selectionHelper = new THREE.BoxHelper(new THREE.Object3D(), 0xf97316);
+selectionHelper.visible = false;
+scene.add(selectionHelper);
+
 let lastGroundHit = { x: 0, y: 0, z: 0 };
+let selectedObjectId = null;
+let selectedMesh = null;
+let isDraggingObject = false;
+let dragOffset = { x: 0, z: 0 };
 
 function snapToGrid(value) {
   const gridSize = state.scene.gridSize;
@@ -81,9 +90,32 @@ function snapToGrid(value) {
 
 function renderObjects() {
   objectLayer.clear();
+  objectMeshes.clear();
 
   for (const object of state.objects) {
-    objectLayer.add(createObjectMesh(object));
+    const mesh = createObjectMesh(object);
+    objectLayer.add(mesh);
+    objectMeshes.set(object.id, mesh);
+  }
+
+  updateSelectionHelper();
+}
+
+function updateSelectionHelper() {
+  selectedMesh = selectedObjectId ? objectMeshes.get(selectedObjectId) ?? null : null;
+  selectionHelper.visible = Boolean(selectedMesh);
+
+  if (selectedMesh) {
+    selectionHelper.setFromObject(selectedMesh);
+  }
+}
+
+function selectObject(objectId) {
+  selectedObjectId = objectId;
+  updateSelectionHelper();
+
+  if (objectId) {
+    status.textContent = `Selected ${objectId}`;
   }
 }
 
@@ -103,14 +135,20 @@ function spawnObject(type) {
   status.textContent = `Added ${catalog[type].label}`;
 }
 
-function updatePointer(event) {
+function updateRaycaster(event) {
   const rect = renderer.domElement.getBoundingClientRect();
   pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
   pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
   raycaster.setFromCamera(pointer, camera);
-  const [hit] = raycaster.intersectObject(ground);
+}
 
+function getGroundHit(event) {
+  updateRaycaster(event);
+  const [hit] = raycaster.intersectObject(ground);
+  return hit ?? null;
+}
+
+function updateGroundMarker(hit) {
   if (!hit) {
     marker.visible = false;
     status.textContent = 'Ground hit: —';
@@ -127,10 +165,80 @@ function updatePointer(event) {
   const snappedZ = snapToGrid(hit.point.z);
   marker.visible = true;
   marker.position.set(snappedX, 0.025, snappedZ);
-  status.textContent = `Ground hit: x ${snappedX.toFixed(2)}, z ${snappedZ.toFixed(2)}`;
+
+  if (!selectedObjectId) {
+    status.textContent = `Ground hit: x ${snappedX.toFixed(2)}, z ${snappedZ.toFixed(2)}`;
+  }
+}
+
+function updatePointer(event) {
+  const hit = getGroundHit(event);
+  updateGroundMarker(hit);
+
+  if (!isDraggingObject || !selectedObjectId || !selectedMesh || !hit) {
+    return;
+  }
+
+  const object = getObjectById(selectedObjectId);
+
+  if (!object) {
+    return;
+  }
+
+  const nextX = snapToGrid(hit.point.x + dragOffset.x);
+  const nextZ = snapToGrid(hit.point.z + dragOffset.z);
+
+  object.position.x = nextX;
+  object.position.z = nextZ;
+  selectedMesh.position.set(nextX, object.position.y, nextZ);
+  selectionHelper.setFromObject(selectedMesh);
+  status.textContent = `Moving ${object.id}: x ${nextX.toFixed(2)}, z ${nextZ.toFixed(2)}`;
+}
+
+function getObjectHit(event) {
+  updateRaycaster(event);
+  const hits = raycaster.intersectObjects(objectLayer.children, true);
+  return hits.find((hit) => hit.object.userData.objectId) ?? null;
+}
+
+function onPointerDown(event) {
+  const objectHit = getObjectHit(event);
+
+  if (!objectHit) {
+    selectObject(null);
+    return;
+  }
+
+  const objectId = objectHit.object.userData.objectId;
+  const object = getObjectById(objectId);
+  const groundHit = getGroundHit(event);
+
+  if (!object || !groundHit) {
+    return;
+  }
+
+  event.preventDefault();
+  selectObject(objectId);
+  controls.enabled = false;
+  isDraggingObject = true;
+  dragOffset = {
+    x: object.position.x - groundHit.point.x,
+    z: object.position.z - groundHit.point.z,
+  };
+}
+
+function onPointerUp() {
+  if (!isDraggingObject) {
+    return;
+  }
+
+  isDraggingObject = false;
+  controls.enabled = true;
 }
 
 renderer.domElement.addEventListener('pointermove', updatePointer);
+renderer.domElement.addEventListener('pointerdown', onPointerDown, { capture: true });
+window.addEventListener('pointerup', onPointerUp);
 
 document.querySelectorAll('[data-add-object]').forEach((button) => {
   button.addEventListener('click', () => {

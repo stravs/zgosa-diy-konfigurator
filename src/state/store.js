@@ -22,6 +22,10 @@ export function addObject(type, position = { x: 0, y: 0, z: 0 }) {
   return object;
 }
 
+export function getObjectById(id) {
+  return state.objects.find((object) => object.id === id) ?? null;
+}
+
 function getDefaultParams(type) {
   if (type === 'box') {
     return { width: 2.4, height: 0.45, depth: 1.2 };
