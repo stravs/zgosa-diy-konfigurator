@@ -1,7 +1,7 @@
 export const state = {
   version: 1,
   scene: {
-    gridSize: 1,
+    gridSize: 0.01,
     units: 'm',
   },
   objects: [],
@@ -64,7 +64,7 @@ export function loadState(snapshot) {
 
   state.version = Number(snapshot.version) || 1;
   state.scene = {
-    gridSize: Number(snapshot.scene?.gridSize) || 1,
+    gridSize: Number(snapshot.scene?.gridSize) || 0.01,
     units: snapshot.scene?.units || 'm',
   };
   state.objects.splice(0, state.objects.length, ...snapshot.objects.map(normalizeObject));
@@ -74,7 +74,7 @@ export function loadState(snapshot) {
 export function resetState() {
   state.version = 1;
   state.scene = {
-    gridSize: 1,
+    gridSize: 0.01,
     units: 'm',
   };
   state.objects.splice(0, state.objects.length);
@@ -148,6 +148,14 @@ function getDefaultParams(type) {
 
   if (type === 'pyramid') {
     return { height: 0.8, length: 2.0, topSize: 1.2 };
+  }
+
+  if (type === 'rail') {
+    return { height: 0.7, length: 3.0, railRadius: 0.05 };
+  }
+
+  if (type === 'stairs') {
+    return { width: 2.4, height: 0.18, stepCount: 5, treadDepth: 0.35 };
   }
 
   throw new Error(`Unknown object type: ${type}`);

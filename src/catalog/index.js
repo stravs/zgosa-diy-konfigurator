@@ -7,6 +7,8 @@ import { createHip } from './hip.js';
 import { createVolcano } from './volcano.js';
 import { createBank } from './bank.js';
 import { createPyramid } from './pyramid.js';
+import { createRail } from './rail.js';
+import { createStairs } from './stairs.js';
 
 export const catalog = {
   box: {
@@ -48,6 +50,14 @@ export const catalog = {
   pyramid: {
     label: 'Pyramid',
     createMesh: createPyramid,
+  },
+  rail: {
+    label: 'Rail',
+    createMesh: createRail,
+  },
+  stairs: {
+    label: 'Stairs',
+    createMesh: createStairs,
   },
 };
 

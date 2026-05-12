@@ -29,6 +29,7 @@ const propY = document.getElementById('prop-y');
 const propRotation = document.getElementById('prop-rotation');
 const propWidthRow = document.getElementById('prop-width-row');
 const propWidth = document.getElementById('prop-width');
+const propHeightLabel = document.getElementById('prop-height-label');
 const propHeight = document.getElementById('prop-height');
 const propDepth = document.getElementById('prop-depth');
 const propDepthLabel = document.getElementById('prop-depth-label');
@@ -42,6 +43,8 @@ const propDegrees = document.getElementById('prop-degrees');
 const propTopRadiusRow = document.getElementById('prop-top-radius-row');
 const propTopRadiusLabel = document.getElementById('prop-top-radius-label');
 const propTopRadius = document.getElementById('prop-top-radius');
+const propStepCountRow = document.getElementById('prop-step-count-row');
+const propStepCount = document.getElementById('prop-step-count');
 const moveToolButton = document.getElementById('move-tool');
 const rotateToolButton = document.getElementById('rotate-tool');
 const rotateSelectedButton = document.getElementById('rotate-selected');
@@ -214,15 +217,16 @@ function updatePropertiesPanel() {
   propZ.value = object.position.z.toFixed(2);
   propY.value = object.position.y.toFixed(2);
   propRotation.value = THREE.MathUtils.radToDeg(object.rotation.y).toFixed(0);
-  propWidthRow.hidden = object.type === 'hip' || object.type === 'volcano' || object.type === 'bank' || object.type === 'pyramid';
+  propWidthRow.hidden = object.type === 'hip' || object.type === 'volcano' || object.type === 'bank' || object.type === 'pyramid' || object.type === 'rail';
   propWidth.value = object.params.width ?? '';
+  propHeightLabel.textContent = object.type === 'stairs' ? 'Stair Height' : 'Height';
   propHeight.value = object.params.height;
 
   if (object.type === 'quarterPipe' || object.type === 'halfPipe' || object.type === 'corner' || object.type === 'hip' || object.type === 'volcano') {
     propDepthLabel.textContent = 'Radius';
     propDepth.dataset.prop = 'params.radius';
     propDepth.value = object.params.radius ?? object.params.depth ?? 2;
-  } else if (object.type === 'bank' || object.type === 'pyramid') {
+  } else if (object.type === 'bank' || object.type === 'pyramid' || object.type === 'rail') {
     propDepthLabel.textContent = object.type === 'pyramid' ? 'Bank Length' : 'Length';
     propDepth.dataset.prop = 'params.length';
     propDepth.value = object.params.length;
@@ -248,6 +252,9 @@ function updatePropertiesPanel() {
   propTopRadius.value = object.type === 'pyramid'
     ? object.params.topSize ?? 1.2
     : object.params.topRadius ?? 0.6;
+
+  propStepCountRow.hidden = object.type !== 'stairs';
+  propStepCount.value = object.params.stepCount ?? 5;
 }
 
 function applyPropertyChange(input) {
@@ -287,6 +294,8 @@ function applyPropertyChange(input) {
     object.params.topSize = Math.max(0, value);
   } else if (input.dataset.prop === 'params.length') {
     object.params.length = Math.max(0.1, value);
+  } else if (input.dataset.prop === 'params.stepCount') {
+    object.params.stepCount = Math.max(1, Math.round(value));
   }
 
   renderObjects();
@@ -330,8 +339,8 @@ function duplicateSelected() {
   }
 
   const copy = duplicateObject(selectedObjectId, {
-    x: state.scene.gridSize,
-    z: state.scene.gridSize,
+    x: 1,
+    z: 1,
   });
 
   if (!copy) {
