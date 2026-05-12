@@ -1,27 +1,22 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
-import { catalog, createObjectMesh } from './catalog/index.js';
+import { catalog } from './catalog/index.js';
 import { createScene } from './core/scene.js';
+import { createObjectRenderer } from './editor/objectRenderer.js';
+import { createContextMenu } from './ui/contextMenu.js';
 import { createPropertiesPanel } from './ui/propertiesPanel.js';
+import { createToolbar } from './ui/toolbar.js';
 import {
   addObject,
   duplicateObject,
   getObjectById,
-  loadState,
   removeObject,
-  resetState,
-  serializeState,
   state,
 } from './state/store.js';
 
 const app = document.getElementById('app');
 const status = document.getElementById('status');
-const contextMenu = document.getElementById('context-menu');
-const newSceneButton = document.getElementById('new-scene');
-const saveJsonButton = document.getElementById('save-json');
-const loadJsonButton = document.getElementById('load-json');
-const loadJsonInput = document.getElementById('load-json-input');
 const moveToolButton = document.getElementById('move-tool');
 const rotateToolButton = document.getElementById('rotate-tool');
 const rotateSelectedButton = document.getElementById('rotate-selected');
@@ -58,7 +53,8 @@ scene.add(marker);
 
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
-const objectMeshes = new Map();
+const objectRenderer = createObjectRenderer(objectLayer);
+const { objectMeshes } = objectRenderer;
 const selectionHelper = new THREE.BoxHelper(new THREE.Object3D(), 0xf97316);
 selectionHelper.visible = false;
 scene.add(selectionHelper);
@@ -88,7 +84,6 @@ function simplifyTransformGizmo() {
 simplifyTransformGizmo();
 
 let lastGroundHit = { x: 0, y: 0, z: 0 };
-let contextSpawnPosition = null;
 let selectedObjectId = null;
 let selectedMesh = null;
 let isDraggingObject = false;
@@ -110,15 +105,7 @@ function snapToGrid(value) {
 }
 
 function renderObjects() {
-  objectLayer.clear();
-  objectMeshes.clear();
-
-  for (const object of state.objects) {
-    const mesh = createObjectMesh(object);
-    objectLayer.add(mesh);
-    objectMeshes.set(object.id, mesh);
-  }
-
+  objectRenderer.render();
   updateSelectionHelper();
 }
 
@@ -249,65 +236,6 @@ function spawnObject(type, position = lastGroundHit) {
   status.textContent = `Added ${catalog[type].label}`;
 }
 
-function showContextMenu(event, position) {
-  contextSpawnPosition = position;
-  contextMenu.hidden = false;
-  contextMenu.style.left = `${event.clientX}px`;
-  contextMenu.style.top = `${event.clientY}px`;
-}
-
-function hideContextMenu() {
-  contextMenu.hidden = true;
-  contextSpawnPosition = null;
-}
-
-function saveJson() {
-  const blob = new Blob([serializeState()], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'skate-park.json';
-  link.click();
-  URL.revokeObjectURL(url);
-  status.textContent = 'Saved JSON';
-}
-
-function resetScene() {
-  const shouldReset = state.objects.length === 0 || window.confirm('Clear current scene?');
-
-  if (!shouldReset) {
-    return;
-  }
-
-  resetState();
-  selectObject(null);
-  renderObjects();
-  propertiesPanel.update();
-  status.textContent = 'New scene';
-}
-
-async function loadJsonFile(file) {
-  if (!file) {
-    return;
-  }
-
-  try {
-    const text = await file.text();
-    const snapshot = JSON.parse(text);
-    loadState(snapshot);
-    selectObject(null);
-    renderObjects();
-    propertiesPanel.update();
-    status.textContent = `Loaded ${state.objects.length} objects`;
-  } catch (error) {
-    console.error(error);
-    status.textContent = 'Could not load JSON';
-    window.alert('Could not load JSON file.');
-  } finally {
-    loadJsonInput.value = '';
-  }
-}
-
 function updateRaycaster(event) {
   const rect = renderer.domElement.getBoundingClientRect();
   pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -320,6 +248,29 @@ function getGroundHit(event) {
   const [hit] = raycaster.intersectObject(ground);
   return hit ?? null;
 }
+
+const contextMenuController = createContextMenu({
+  renderer,
+  getGroundHit,
+  spawnObject,
+  getLastGroundHit: () => lastGroundHit,
+});
+
+createToolbar({
+  afterReset: () => {
+    selectObject(null);
+    renderObjects();
+    propertiesPanel.update();
+  },
+  afterLoad: () => {
+    selectObject(null);
+    renderObjects();
+    propertiesPanel.update();
+  },
+  setStatus: (message) => {
+    status.textContent = message;
+  },
+});
 
 function updateGroundMarker(hit) {
   if (!hit) {
@@ -380,7 +331,7 @@ function isUsingTransformControls() {
 }
 
 function onPointerDown(event) {
-  hideContextMenu();
+  contextMenuController.hide();
 
   if (event.button !== 0) {
     return;
@@ -426,32 +377,7 @@ function onPointerUp() {
 
 renderer.domElement.addEventListener('pointermove', updatePointer);
 renderer.domElement.addEventListener('pointerdown', onPointerDown, { capture: true });
-renderer.domElement.addEventListener('contextmenu', (event) => {
-  event.preventDefault();
-  const hit = getGroundHit(event);
-
-  if (!hit) {
-    hideContextMenu();
-    return;
-  }
-
-  showContextMenu(event, {
-    x: hit.point.x,
-    y: 0,
-    z: hit.point.z,
-  });
-});
 window.addEventListener('pointerup', onPointerUp);
-window.addEventListener('click', (event) => {
-  if (!contextMenu.contains(event.target)) {
-    hideContextMenu();
-  }
-});
-window.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape') {
-    hideContextMenu();
-  }
-});
 
 transformControls.addEventListener('dragging-changed', (event) => {
   controls.enabled = !event.value;
@@ -466,18 +392,6 @@ document.querySelectorAll('[data-add-object]').forEach((button) => {
     spawnObject(button.dataset.addObject);
   });
 });
-
-document.querySelectorAll('[data-context-add]').forEach((button) => {
-  button.addEventListener('click', () => {
-    spawnObject(button.dataset.contextAdd, contextSpawnPosition ?? lastGroundHit);
-    hideContextMenu();
-  });
-});
-
-newSceneButton.addEventListener('click', resetScene);
-saveJsonButton.addEventListener('click', saveJson);
-loadJsonButton.addEventListener('click', () => loadJsonInput.click());
-loadJsonInput.addEventListener('change', () => loadJsonFile(loadJsonInput.files[0]));
 
 moveToolButton.addEventListener('click', () => setTransformMode('translate'));
 rotateToolButton.addEventListener('click', () => setTransformMode('rotate'));
