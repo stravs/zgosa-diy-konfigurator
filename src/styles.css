@@ -27,23 +27,33 @@ body {
 
 .workspace {
   display: grid;
-  grid-template-columns: 180px 1fr;
+  grid-template-columns: 180px 1fr 240px;
   min-height: 0;
 }
 
-.left-panel {
+.left-panel,
+.right-panel {
   padding: 16px;
-  border-right: 1px solid rgba(148, 163, 184, 0.2);
   background: rgba(15, 23, 42, 0.9);
 }
 
-.left-panel h2 {
+.left-panel {
+  border-right: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.right-panel {
+  border-left: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.left-panel h2,
+.right-panel h2 {
   margin: 0 0 12px;
   font-size: 14px;
   color: #cbd5e1;
 }
 
-.left-panel button {
+.left-panel button,
+.property-actions button {
   display: block;
   width: 100%;
   margin: 0 0 8px;
@@ -56,8 +66,57 @@ body {
   text-align: left;
 }
 
-.left-panel button:hover {
+.left-panel button:hover,
+.property-actions button:hover {
   background: #334155;
+}
+
+.property-actions {
+  margin-top: 8px;
+}
+
+.property-actions button.danger {
+  border-color: rgba(248, 113, 113, 0.45);
+  color: #fecaca;
+}
+
+.property-actions button.danger:hover {
+  background: #7f1d1d;
+}
+
+#no-selection {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+#properties-form {
+  display: grid;
+  gap: 10px;
+}
+
+#properties-form[hidden] {
+  display: none;
+}
+
+#properties-form label {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+#properties-form input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 6px;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+#properties-form input:disabled {
+  color: #94a3b8;
 }
 
 .topbar {

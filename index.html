@@ -28,6 +28,51 @@
           <button data-add-object="quarterPipe">Quarter Pipe</button>
         </aside>
         <main id="app"></main>
+        <aside class="right-panel">
+          <h2>Properties</h2>
+          <p id="no-selection">Select an object.</p>
+          <form id="properties-form" hidden>
+            <label>
+              Type
+              <input id="prop-type" type="text" disabled />
+            </label>
+            <label>
+              X
+              <input id="prop-x" data-prop="position.x" type="number" step="0.1" />
+            </label>
+            <label>
+              Z
+              <input id="prop-z" data-prop="position.z" type="number" step="0.1" />
+            </label>
+            <label>
+              Y
+              <input id="prop-y" data-prop="position.y" type="number" step="0.1" />
+            </label>
+            <label>
+              Rotation
+              <input id="prop-rotation" data-prop="rotation.y" type="number" step="15" />
+            </label>
+            <label>
+              Width
+              <input id="prop-width" data-prop="params.width" type="number" min="0.1" step="0.1" />
+            </label>
+            <label>
+              Height
+              <input id="prop-height" data-prop="params.height" type="number" min="0.1" step="0.1" />
+            </label>
+            <label>
+              Depth
+              <input id="prop-depth" data-prop="params.depth" type="number" min="0.1" step="0.1" />
+            </label>
+            <div class="property-actions">
+              <button id="move-tool" type="button">Move Tool</button>
+              <button id="rotate-tool" type="button">Rotate Tool</button>
+              <button id="rotate-selected" type="button">Rotate 90°</button>
+              <button id="duplicate-selected" type="button">Duplicate</button>
+              <button id="delete-selected" type="button" class="danger">Delete</button>
+            </div>
+          </form>
+        </aside>
       </div>
     </div>
     <script type="module" src="./src/main.js"></script>
