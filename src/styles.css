@@ -134,6 +134,24 @@ body {
   font-size: 16px;
 }
 
+.topbar-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.topbar-actions button {
+  padding: 8px 10px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 8px;
+  background: #1e293b;
+  color: #e2e8f0;
+  cursor: pointer;
+}
+
+.topbar-actions button:hover {
+  background: #334155;
+}
+
 #status {
   font-size: 14px;
   color: #94a3b8;

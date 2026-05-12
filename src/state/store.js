@@ -53,6 +53,64 @@ export function duplicateObject(id, offset = { x: 1, z: 1 }) {
   return copy;
 }
 
+export function serializeState() {
+  return JSON.stringify(state, null, 2);
+}
+
+export function loadState(snapshot) {
+  if (!snapshot || !Array.isArray(snapshot.objects)) {
+    throw new Error('Invalid scene JSON');
+  }
+
+  state.version = Number(snapshot.version) || 1;
+  state.scene = {
+    gridSize: Number(snapshot.scene?.gridSize) || 1,
+    units: snapshot.scene?.units || 'm',
+  };
+  state.objects.splice(0, state.objects.length, ...snapshot.objects.map(normalizeObject));
+  nextObjectId = getNextObjectId();
+}
+
+export function resetState() {
+  state.version = 1;
+  state.scene = {
+    gridSize: 1,
+    units: 'm',
+  };
+  state.objects.splice(0, state.objects.length);
+  nextObjectId = 1;
+}
+
+function normalizeObject(object) {
+  return {
+    id: String(object.id || `obj_${nextObjectId++}`),
+    type: object.type,
+    position: {
+      x: Number(object.position?.x) || 0,
+      y: Number(object.position?.y) || 0,
+      z: Number(object.position?.z) || 0,
+    },
+    rotation: {
+      x: Number(object.rotation?.x) || 0,
+      y: Number(object.rotation?.y) || 0,
+      z: Number(object.rotation?.z) || 0,
+    },
+    params: {
+      ...getDefaultParams(object.type),
+      ...object.params,
+    },
+  };
+}
+
+function getNextObjectId() {
+  const highestId = state.objects.reduce((highest, object) => {
+    const match = /^obj_(\d+)$/.exec(object.id);
+    return match ? Math.max(highest, Number(match[1])) : highest;
+  }, 0);
+
+  return highestId + 1;
+}
+
 function getDefaultParams(type) {
   if (type === 'box') {
     return { width: 2.4, height: 0.45, depth: 1.2 };

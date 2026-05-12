@@ -18,6 +18,12 @@
     <div class="app-shell">
       <header class="topbar">
         <h1>Skate Park Configurator</h1>
+        <div class="topbar-actions">
+          <button id="new-scene" type="button">New</button>
+          <button id="save-json" type="button">Save JSON</button>
+          <button id="load-json" type="button">Load JSON</button>
+          <input id="load-json-input" type="file" accept="application/json,.json" hidden />
+        </div>
         <div id="status">Ground hit: —</div>
       </header>
       <div class="workspace">

@@ -2,10 +2,23 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { catalog, createObjectMesh } from './catalog/index.js';
-import { addObject, duplicateObject, getObjectById, removeObject, state } from './state/store.js';
+import {
+  addObject,
+  duplicateObject,
+  getObjectById,
+  loadState,
+  removeObject,
+  resetState,
+  serializeState,
+  state,
+} from './state/store.js';
 
 const app = document.getElementById('app');
 const status = document.getElementById('status');
+const newSceneButton = document.getElementById('new-scene');
+const saveJsonButton = document.getElementById('save-json');
+const loadJsonButton = document.getElementById('load-json');
+const loadJsonInput = document.getElementById('load-json-input');
 const noSelection = document.getElementById('no-selection');
 const propertiesForm = document.getElementById('properties-form');
 const propType = document.getElementById('prop-type');
@@ -317,6 +330,53 @@ function spawnObject(type) {
   status.textContent = `Added ${catalog[type].label}`;
 }
 
+function saveJson() {
+  const blob = new Blob([serializeState()], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'skate-park.json';
+  link.click();
+  URL.revokeObjectURL(url);
+  status.textContent = 'Saved JSON';
+}
+
+function resetScene() {
+  const shouldReset = state.objects.length === 0 || window.confirm('Clear current scene?');
+
+  if (!shouldReset) {
+    return;
+  }
+
+  resetState();
+  selectObject(null);
+  renderObjects();
+  updatePropertiesPanel();
+  status.textContent = 'New scene';
+}
+
+async function loadJsonFile(file) {
+  if (!file) {
+    return;
+  }
+
+  try {
+    const text = await file.text();
+    const snapshot = JSON.parse(text);
+    loadState(snapshot);
+    selectObject(null);
+    renderObjects();
+    updatePropertiesPanel();
+    status.textContent = `Loaded ${state.objects.length} objects`;
+  } catch (error) {
+    console.error(error);
+    status.textContent = 'Could not load JSON';
+    window.alert('Could not load JSON file.');
+  } finally {
+    loadJsonInput.value = '';
+  }
+}
+
 function updateRaycaster(event) {
   const rect = renderer.domElement.getBoundingClientRect();
   pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -450,6 +510,11 @@ document.querySelectorAll('[data-prop]').forEach((input) => {
     applyPropertyChange(input);
   });
 });
+
+newSceneButton.addEventListener('click', resetScene);
+saveJsonButton.addEventListener('click', saveJson);
+loadJsonButton.addEventListener('click', () => loadJsonInput.click());
+loadJsonInput.addEventListener('change', () => loadJsonFile(loadJsonInput.files[0]));
 
 moveToolButton.addEventListener('click', () => setTransformMode('translate'));
 rotateToolButton.addEventListener('click', () => setTransformMode('rotate'));
