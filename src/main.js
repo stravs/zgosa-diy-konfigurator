@@ -33,6 +33,8 @@ const propDepth = document.getElementById('prop-depth');
 const propDepthLabel = document.getElementById('prop-depth-label');
 const propDeckDepthRow = document.getElementById('prop-deck-depth-row');
 const propDeckDepth = document.getElementById('prop-deck-depth');
+const propFlatLengthRow = document.getElementById('prop-flat-length-row');
+const propFlatLength = document.getElementById('prop-flat-length');
 const moveToolButton = document.getElementById('move-tool');
 const rotateToolButton = document.getElementById('rotate-tool');
 const rotateSelectedButton = document.getElementById('rotate-selected');
@@ -208,18 +210,21 @@ function updatePropertiesPanel() {
   propWidth.value = object.params.width;
   propHeight.value = object.params.height;
 
-  if (object.type === 'quarterPipe') {
+  if (object.type === 'quarterPipe' || object.type === 'halfPipe') {
     propDepthLabel.textContent = 'Radius';
     propDepth.dataset.prop = 'params.radius';
     propDepth.value = object.params.radius ?? object.params.depth ?? 2;
-    propDeckDepthRow.hidden = false;
-    propDeckDepth.value = object.params.deckDepth ?? 0.8;
   } else {
     propDepthLabel.textContent = 'Depth';
     propDepth.dataset.prop = 'params.depth';
     propDepth.value = object.params.depth;
-    propDeckDepthRow.hidden = true;
   }
+
+  propDeckDepthRow.hidden = object.type !== 'quarterPipe' && object.type !== 'halfPipe';
+  propDeckDepth.value = object.params.deckDepth ?? 0.8;
+
+  propFlatLengthRow.hidden = object.type !== 'halfPipe';
+  propFlatLength.value = object.params.flatLength ?? 1.5;
 }
 
 function applyPropertyChange(input) {
@@ -249,6 +254,8 @@ function applyPropertyChange(input) {
     delete object.params.depth;
   } else if (input.dataset.prop === 'params.deckDepth') {
     object.params.deckDepth = Math.max(0, value);
+  } else if (input.dataset.prop === 'params.flatLength') {
+    object.params.flatLength = Math.max(0, value);
   }
 
   renderObjects();

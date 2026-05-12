@@ -32,6 +32,7 @@
           <button data-add-object="box">Box</button>
           <button data-add-object="ledge">Ledge</button>
           <button data-add-object="quarterPipe">Quarter Pipe</button>
+          <button data-add-object="halfPipe">Half Pipe</button>
         </aside>
         <main id="app"></main>
         <aside class="right-panel">
@@ -74,6 +75,10 @@
               Deck Depth
               <input id="prop-deck-depth" data-prop="params.deckDepth" type="number" min="0" step="0.1" />
             </label>
+            <label id="prop-flat-length-row" hidden>
+              Flat Length
+              <input id="prop-flat-length" data-prop="params.flatLength" type="number" min="0" step="0.1" />
+            </label>
             <div class="property-actions">
               <button id="move-tool" type="button">Move Tool</button>
               <button id="rotate-tool" type="button">Rotate Tool</button>
@@ -89,6 +94,7 @@
       <button data-context-add="box" type="button">Add Box</button>
       <button data-context-add="ledge" type="button">Add Ledge</button>
       <button data-context-add="quarterPipe" type="button">Add Quarter Pipe</button>
+      <button data-context-add="halfPipe" type="button">Add Half Pipe</button>
     </div>
     <script type="module" src="./src/main.js"></script>
   </body>

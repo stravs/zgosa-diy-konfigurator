@@ -1,6 +1,7 @@
 import { createBox } from './box.js';
 import { createLedge } from './ledge.js';
 import { createQuarterPipe } from './quarterPipe.js';
+import { createHalfPipe } from './halfPipe.js';
 
 export const catalog = {
   box: {
@@ -14,6 +15,10 @@ export const catalog = {
   quarterPipe: {
     label: 'Quarter Pipe',
     createMesh: createQuarterPipe,
+  },
+  halfPipe: {
+    label: 'Half Pipe',
+    createMesh: createHalfPipe,
   },
 };
 
