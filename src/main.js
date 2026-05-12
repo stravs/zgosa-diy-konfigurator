@@ -35,6 +35,8 @@ const propDeckDepthRow = document.getElementById('prop-deck-depth-row');
 const propDeckDepth = document.getElementById('prop-deck-depth');
 const propFlatLengthRow = document.getElementById('prop-flat-length-row');
 const propFlatLength = document.getElementById('prop-flat-length');
+const propDegreesRow = document.getElementById('prop-degrees-row');
+const propDegrees = document.getElementById('prop-degrees');
 const moveToolButton = document.getElementById('move-tool');
 const rotateToolButton = document.getElementById('rotate-tool');
 const rotateSelectedButton = document.getElementById('rotate-selected');
@@ -210,7 +212,7 @@ function updatePropertiesPanel() {
   propWidth.value = object.params.width;
   propHeight.value = object.params.height;
 
-  if (object.type === 'quarterPipe' || object.type === 'halfPipe') {
+  if (object.type === 'quarterPipe' || object.type === 'halfPipe' || object.type === 'corner') {
     propDepthLabel.textContent = 'Radius';
     propDepth.dataset.prop = 'params.radius';
     propDepth.value = object.params.radius ?? object.params.depth ?? 2;
@@ -220,11 +222,14 @@ function updatePropertiesPanel() {
     propDepth.value = object.params.depth;
   }
 
-  propDeckDepthRow.hidden = object.type !== 'quarterPipe' && object.type !== 'halfPipe';
+  propDeckDepthRow.hidden = object.type !== 'quarterPipe' && object.type !== 'halfPipe' && object.type !== 'corner';
   propDeckDepth.value = object.params.deckDepth ?? 0.8;
 
   propFlatLengthRow.hidden = object.type !== 'halfPipe';
   propFlatLength.value = object.params.flatLength ?? 1.5;
+
+  propDegreesRow.hidden = object.type !== 'corner';
+  propDegrees.value = object.params.degrees ?? 90;
 }
 
 function applyPropertyChange(input) {
@@ -256,6 +261,8 @@ function applyPropertyChange(input) {
     object.params.deckDepth = Math.max(0, value);
   } else if (input.dataset.prop === 'params.flatLength') {
     object.params.flatLength = Math.max(0, value);
+  } else if (input.dataset.prop === 'params.degrees') {
+    object.params.degrees = THREE.MathUtils.clamp(value, 1, 180);
   }
 
   renderObjects();

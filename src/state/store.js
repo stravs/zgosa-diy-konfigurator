@@ -82,9 +82,11 @@ export function resetState() {
 }
 
 function normalizeObject(object) {
+  const type = object.type === 'corner90' ? 'corner' : object.type;
+
   return {
     id: String(object.id || `obj_${nextObjectId++}`),
-    type: object.type,
+    type,
     position: {
       x: Number(object.position?.x) || 0,
       y: Number(object.position?.y) || 0,
@@ -96,7 +98,7 @@ function normalizeObject(object) {
       z: Number(object.rotation?.z) || 0,
     },
     params: {
-      ...getDefaultParams(object.type),
+      ...getDefaultParams(type),
       ...object.params,
     },
   };
@@ -126,6 +128,10 @@ function getDefaultParams(type) {
 
   if (type === 'halfPipe') {
     return { width: 2.4, height: 1.2, radius: 2.0, flatLength: 1.5, deckDepth: 0.8 };
+  }
+
+  if (type === 'corner') {
+    return { width: 2.4, height: 1.2, radius: 2.0, deckDepth: 0.8, degrees: 90 };
   }
 
   throw new Error(`Unknown object type: ${type}`);

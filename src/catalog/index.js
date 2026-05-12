@@ -2,6 +2,7 @@ import { createBox } from './box.js';
 import { createLedge } from './ledge.js';
 import { createQuarterPipe } from './quarterPipe.js';
 import { createHalfPipe } from './halfPipe.js';
+import { createCorner } from './corner.js';
 
 export const catalog = {
   box: {
@@ -19,6 +20,14 @@ export const catalog = {
   halfPipe: {
     label: 'Half Pipe',
     createMesh: createHalfPipe,
+  },
+  corner: {
+    label: 'Corner',
+    createMesh: createCorner,
+  },
+  corner90: {
+    label: 'Corner',
+    createMesh: createCorner,
   },
 };
 
