@@ -121,7 +121,7 @@ function getDefaultParams(type) {
   }
 
   if (type === 'quarterPipe') {
-    return { width: 2.4, height: 1.2, depth: 2.0 };
+    return { width: 2.4, height: 1.2, radius: 2.0, deckDepth: 0.8 };
   }
 
   throw new Error(`Unknown object type: ${type}`);

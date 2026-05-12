@@ -30,6 +30,9 @@ const propRotation = document.getElementById('prop-rotation');
 const propWidth = document.getElementById('prop-width');
 const propHeight = document.getElementById('prop-height');
 const propDepth = document.getElementById('prop-depth');
+const propDepthLabel = document.getElementById('prop-depth-label');
+const propDeckDepthRow = document.getElementById('prop-deck-depth-row');
+const propDeckDepth = document.getElementById('prop-deck-depth');
 const moveToolButton = document.getElementById('move-tool');
 const rotateToolButton = document.getElementById('rotate-tool');
 const rotateSelectedButton = document.getElementById('rotate-selected');
@@ -204,7 +207,19 @@ function updatePropertiesPanel() {
   propRotation.value = THREE.MathUtils.radToDeg(object.rotation.y).toFixed(0);
   propWidth.value = object.params.width;
   propHeight.value = object.params.height;
-  propDepth.value = object.params.depth;
+
+  if (object.type === 'quarterPipe') {
+    propDepthLabel.textContent = 'Radius';
+    propDepth.dataset.prop = 'params.radius';
+    propDepth.value = object.params.radius ?? object.params.depth ?? 2;
+    propDeckDepthRow.hidden = false;
+    propDeckDepth.value = object.params.deckDepth ?? 0.8;
+  } else {
+    propDepthLabel.textContent = 'Depth';
+    propDepth.dataset.prop = 'params.depth';
+    propDepth.value = object.params.depth;
+    propDeckDepthRow.hidden = true;
+  }
 }
 
 function applyPropertyChange(input) {
@@ -229,6 +244,11 @@ function applyPropertyChange(input) {
     object.params.height = Math.max(0.1, value);
   } else if (input.dataset.prop === 'params.depth') {
     object.params.depth = Math.max(0.1, value);
+  } else if (input.dataset.prop === 'params.radius') {
+    object.params.radius = Math.max(0.1, value);
+    delete object.params.depth;
+  } else if (input.dataset.prop === 'params.deckDepth') {
+    object.params.deckDepth = Math.max(0, value);
   }
 
   renderObjects();
