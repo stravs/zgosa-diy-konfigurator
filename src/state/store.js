@@ -134,5 +134,9 @@ function getDefaultParams(type) {
     return { width: 2.4, height: 1.2, radius: 2.0, deckDepth: 0.8, degrees: 90 };
   }
 
+  if (type === 'hip') {
+    return { height: 1.2, radius: 2.0, degrees: 90 };
+  }
+
   throw new Error(`Unknown object type: ${type}`);
 }

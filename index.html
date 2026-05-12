@@ -34,6 +34,7 @@
           <button data-add-object="quarterPipe">Quarter Pipe</button>
           <button data-add-object="halfPipe">Half Pipe</button>
           <button data-add-object="corner">Corner</button>
+          <button data-add-object="hip">Hip</button>
         </aside>
         <main id="app"></main>
         <aside class="right-panel">
@@ -60,7 +61,7 @@
               Rotation
               <input id="prop-rotation" data-prop="rotation.y" type="number" step="15" />
             </label>
-            <label>
+            <label id="prop-width-row">
               Width
               <input id="prop-width" data-prop="params.width" type="number" min="0.1" step="0.1" />
             </label>
@@ -81,7 +82,7 @@
               <input id="prop-flat-length" data-prop="params.flatLength" type="number" min="0" step="0.1" />
             </label>
             <label id="prop-degrees-row" hidden>
-              Degrees
+              <span id="prop-degrees-label">Degrees</span>
               <input id="prop-degrees" data-prop="params.degrees" type="number" min="1" max="180" step="1" />
             </label>
             <div class="property-actions">
@@ -101,6 +102,7 @@
       <button data-context-add="quarterPipe" type="button">Add Quarter Pipe</button>
       <button data-context-add="halfPipe" type="button">Add Half Pipe</button>
       <button data-context-add="corner" type="button">Add Corner</button>
+      <button data-context-add="hip" type="button">Add Hip</button>
     </div>
     <script type="module" src="./src/main.js"></script>
   </body>

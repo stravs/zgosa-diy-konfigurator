@@ -27,6 +27,7 @@ const propX = document.getElementById('prop-x');
 const propZ = document.getElementById('prop-z');
 const propY = document.getElementById('prop-y');
 const propRotation = document.getElementById('prop-rotation');
+const propWidthRow = document.getElementById('prop-width-row');
 const propWidth = document.getElementById('prop-width');
 const propHeight = document.getElementById('prop-height');
 const propDepth = document.getElementById('prop-depth');
@@ -36,6 +37,7 @@ const propDeckDepth = document.getElementById('prop-deck-depth');
 const propFlatLengthRow = document.getElementById('prop-flat-length-row');
 const propFlatLength = document.getElementById('prop-flat-length');
 const propDegreesRow = document.getElementById('prop-degrees-row');
+const propDegreesLabel = document.getElementById('prop-degrees-label');
 const propDegrees = document.getElementById('prop-degrees');
 const moveToolButton = document.getElementById('move-tool');
 const rotateToolButton = document.getElementById('rotate-tool');
@@ -209,10 +211,11 @@ function updatePropertiesPanel() {
   propZ.value = object.position.z.toFixed(2);
   propY.value = object.position.y.toFixed(2);
   propRotation.value = THREE.MathUtils.radToDeg(object.rotation.y).toFixed(0);
-  propWidth.value = object.params.width;
+  propWidthRow.hidden = object.type === 'hip';
+  propWidth.value = object.params.width ?? '';
   propHeight.value = object.params.height;
 
-  if (object.type === 'quarterPipe' || object.type === 'halfPipe' || object.type === 'corner') {
+  if (object.type === 'quarterPipe' || object.type === 'halfPipe' || object.type === 'corner' || object.type === 'hip') {
     propDepthLabel.textContent = 'Radius';
     propDepth.dataset.prop = 'params.radius';
     propDepth.value = object.params.radius ?? object.params.depth ?? 2;
@@ -228,7 +231,8 @@ function updatePropertiesPanel() {
   propFlatLengthRow.hidden = object.type !== 'halfPipe';
   propFlatLength.value = object.params.flatLength ?? 1.5;
 
-  propDegreesRow.hidden = object.type !== 'corner';
+  propDegreesRow.hidden = object.type !== 'corner' && object.type !== 'hip';
+  propDegreesLabel.textContent = object.type === 'hip' ? 'Sweep Angle' : 'Degrees';
   propDegrees.value = object.params.degrees ?? 90;
 }
 
