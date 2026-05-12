@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Skate Park Configurator</title>
+    <link rel="stylesheet" href="./src/styles.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.177.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.177.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <h1>Skate Park Configurator</h1>
+        <div id="status">Ground hit: —</div>
+      </header>
+      <div class="workspace">
+        <aside class="left-panel">
+          <h2>Objects</h2>
+          <button data-add-object="box">Box</button>
+          <button data-add-object="ledge">Ledge</button>
+          <button data-add-object="quarterPipe">Quarter Pipe</button>
+        </aside>
+        <main id="app"></main>
+      </div>
+    </div>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
