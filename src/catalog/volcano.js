@@ -7,23 +7,26 @@ function transitionHeight(distance, radius, run) {
   return radius - Math.sqrt(Math.max(0, (radius * radius) - (d * d)));
 }
 
-export function createVolcano(object) {
-  const { height } = object.params;
-  const radius = object.params.radius ?? 2;
-  const topRadius = object.params.topRadius ?? 0.6;
+export function createVolcanoMesh(params) {
+  const { height } = params;
+  const radius = params.radius ?? 2;
+  const topRadius = params.topRadius ?? 0.6;
+  const degrees = params.degrees ?? 360;
+  const sweepAngle = THREE.MathUtils.degToRad(THREE.MathUtils.clamp(degrees, 1, 360));
+  const isFullCircle = Math.abs(degrees - 360) < 0.0001;
   const safeRadius = Math.max(radius, height);
   const run = getQuarterPipeRun(height, safeRadius);
   const radialSegments = 24;
-  const angleSegments = 64;
+  const angleSegments = isFullCircle ? 64 : Math.max(2, Math.ceil(64 * (degrees / 360)));
 
   const geometry = new THREE.BufferGeometry();
   const vertices = [];
   const indices = [];
 
-  // Sweep quarter-pipe transition around a full circle.
-  // Outer edge is flat at ground. Inner top is circular deck/lip.
+  // Sweep quarter-pipe transition around a circle or partial arc.
+  // Outer edge is flat at ground. Inner edge is top radius / apex.
   for (let a = 0; a <= angleSegments; a += 1) {
-    const theta = (a / angleSegments) * Math.PI * 2;
+    const theta = (a / angleSegments) * sweepAngle;
     const cosTheta = Math.cos(theta);
     const sinTheta = Math.sin(theta);
 
@@ -38,6 +41,10 @@ export function createVolcano(object) {
   }
 
   const rowSize = radialSegments + 1;
+  const addVertex = (x, y, z) => {
+    vertices.push(x, y, z);
+    return (vertices.length / 3) - 1;
+  };
 
   for (let a = 0; a < angleSegments; a += 1) {
     for (let r = 0; r < radialSegments; r += 1) {
@@ -49,15 +56,33 @@ export function createVolcano(object) {
     }
   }
 
-  // Flat circular top surface.
+  // Flat circular top surface for true volcano.
   if (topRadius > 0) {
-    const centerIndex = vertices.length / 3;
-    vertices.push(0, height, 0);
+    const centerIndex = addVertex(0, height, 0);
 
     for (let a = 0; a < angleSegments; a += 1) {
       const topA = (a * rowSize) + radialSegments;
       const topB = ((a + 1) * rowSize) + radialSegments;
       indices.push(centerIndex, topA, topB);
+    }
+  }
+
+  // Close side skins for partial sweeps.
+  if (!isFullCircle) {
+    for (const a of [0, angleSegments]) {
+      for (let r = 0; r < radialSegments; r += 1) {
+        const topA = (a * rowSize) + r;
+        const topB = (a * rowSize) + r + 1;
+        const ax = vertices[topA * 3];
+        const az = vertices[topA * 3 + 2];
+        const bx = vertices[topB * 3];
+        const bz = vertices[topB * 3 + 2];
+        const bottomA = addVertex(ax, 0, az);
+        const bottomB = addVertex(bx, 0, bz);
+
+        indices.push(bottomA, topA, bottomB);
+        indices.push(topA, topB, bottomB);
+      }
     }
   }
 
@@ -70,4 +95,8 @@ export function createVolcano(object) {
   mesh.receiveShadow = true;
 
   return mesh;
+}
+
+export function createVolcano(object) {
+  return createVolcanoMesh(object.params);
 }
