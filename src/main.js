@@ -39,6 +39,8 @@ const propFlatLength = document.getElementById('prop-flat-length');
 const propDegreesRow = document.getElementById('prop-degrees-row');
 const propDegreesLabel = document.getElementById('prop-degrees-label');
 const propDegrees = document.getElementById('prop-degrees');
+const propTopRadiusRow = document.getElementById('prop-top-radius-row');
+const propTopRadius = document.getElementById('prop-top-radius');
 const moveToolButton = document.getElementById('move-tool');
 const rotateToolButton = document.getElementById('rotate-tool');
 const rotateSelectedButton = document.getElementById('rotate-selected');
@@ -211,11 +213,11 @@ function updatePropertiesPanel() {
   propZ.value = object.position.z.toFixed(2);
   propY.value = object.position.y.toFixed(2);
   propRotation.value = THREE.MathUtils.radToDeg(object.rotation.y).toFixed(0);
-  propWidthRow.hidden = object.type === 'hip';
+  propWidthRow.hidden = object.type === 'hip' || object.type === 'volcano';
   propWidth.value = object.params.width ?? '';
   propHeight.value = object.params.height;
 
-  if (object.type === 'quarterPipe' || object.type === 'halfPipe' || object.type === 'corner' || object.type === 'hip') {
+  if (object.type === 'quarterPipe' || object.type === 'halfPipe' || object.type === 'corner' || object.type === 'hip' || object.type === 'volcano') {
     propDepthLabel.textContent = 'Radius';
     propDepth.dataset.prop = 'params.radius';
     propDepth.value = object.params.radius ?? object.params.depth ?? 2;
@@ -234,6 +236,9 @@ function updatePropertiesPanel() {
   propDegreesRow.hidden = object.type !== 'corner' && object.type !== 'hip';
   propDegreesLabel.textContent = object.type === 'hip' ? 'Sweep Angle' : 'Degrees';
   propDegrees.value = object.params.degrees ?? 90;
+
+  propTopRadiusRow.hidden = object.type !== 'volcano';
+  propTopRadius.value = object.params.topRadius ?? 0.6;
 }
 
 function applyPropertyChange(input) {
@@ -267,6 +272,8 @@ function applyPropertyChange(input) {
     object.params.flatLength = Math.max(0, value);
   } else if (input.dataset.prop === 'params.degrees') {
     object.params.degrees = THREE.MathUtils.clamp(value, 1, 180);
+  } else if (input.dataset.prop === 'params.topRadius') {
+    object.params.topRadius = Math.max(0, value);
   }
 
   renderObjects();

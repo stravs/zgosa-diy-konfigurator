@@ -4,6 +4,7 @@ import { createQuarterPipe } from './quarterPipe.js';
 import { createHalfPipe } from './halfPipe.js';
 import { createCorner } from './corner.js';
 import { createHip } from './hip.js';
+import { createVolcano } from './volcano.js';
 
 export const catalog = {
   box: {
@@ -33,6 +34,10 @@ export const catalog = {
   hip: {
     label: 'Hip',
     createMesh: createHip,
+  },
+  volcano: {
+    label: 'Volcano',
+    createMesh: createVolcano,
   },
 };
 

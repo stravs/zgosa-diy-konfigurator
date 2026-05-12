@@ -35,6 +35,7 @@
           <button data-add-object="halfPipe">Half Pipe</button>
           <button data-add-object="corner">Corner</button>
           <button data-add-object="hip">Hip</button>
+          <button data-add-object="volcano">Volcano</button>
         </aside>
         <main id="app"></main>
         <aside class="right-panel">
@@ -85,6 +86,10 @@
               <span id="prop-degrees-label">Degrees</span>
               <input id="prop-degrees" data-prop="params.degrees" type="number" min="1" max="180" step="1" />
             </label>
+            <label id="prop-top-radius-row" hidden>
+              Top Radius
+              <input id="prop-top-radius" data-prop="params.topRadius" type="number" min="0" step="0.1" />
+            </label>
             <div class="property-actions">
               <button id="move-tool" type="button">Move Tool</button>
               <button id="rotate-tool" type="button">Rotate Tool</button>
@@ -103,6 +108,7 @@
       <button data-context-add="halfPipe" type="button">Add Half Pipe</button>
       <button data-context-add="corner" type="button">Add Corner</button>
       <button data-context-add="hip" type="button">Add Hip</button>
+      <button data-context-add="volcano" type="button">Add Volcano</button>
     </div>
     <script type="module" src="./src/main.js"></script>
   </body>

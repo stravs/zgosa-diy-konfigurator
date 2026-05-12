@@ -138,5 +138,9 @@ function getDefaultParams(type) {
     return { height: 1.2, radius: 2.0, degrees: 90 };
   }
 
+  if (type === 'volcano') {
+    return { height: 1.2, radius: 2.0, topRadius: 0.6 };
+  }
+
   throw new Error(`Unknown object type: ${type}`);
 }
