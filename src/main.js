@@ -19,9 +19,6 @@ import {
 
 const app = document.getElementById('app');
 const status = document.getElementById('status');
-const moveToolButton = document.getElementById('move-tool');
-const rotateToolButton = document.getElementById('rotate-tool');
-const duplicateSelectedButton = document.getElementById('duplicate-selected');
 const deleteSelectedButton = document.getElementById('delete-selected');
 
 const {
@@ -269,9 +266,6 @@ document.querySelectorAll('[data-add-object]').forEach((button) => {
   });
 });
 
-moveToolButton.addEventListener('click', () => selection.setTransformMode('translate'));
-rotateToolButton.addEventListener('click', () => selection.setTransformMode('rotate'));
-duplicateSelectedButton.addEventListener('click', duplicateSelected);
 deleteSelectedButton.addEventListener('click', deleteSelected);
 
 createShortcuts({

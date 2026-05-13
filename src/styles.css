@@ -9,6 +9,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 html,
 body {
   margin: 0;
@@ -92,7 +96,24 @@ body {
 
 #properties-form {
   display: grid;
+  gap: 14px;
+}
+
+.property-section {
+  display: grid;
   gap: 10px;
+  padding: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.property-section h3 {
+  margin: 0;
+  font-size: 12px;
+  color: #cbd5e1;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 #properties-form[hidden] {

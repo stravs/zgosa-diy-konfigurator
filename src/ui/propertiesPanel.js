@@ -13,6 +13,7 @@ export function createPropertiesPanel({ getObject, snapToGrid, onChange }) {
   const propWidth = document.getElementById('prop-width');
   const propHeightLabel = document.getElementById('prop-height-label');
   const propHeight = document.getElementById('prop-height');
+  const propDepthRow = document.getElementById('prop-depth-row');
   const propDepth = document.getElementById('prop-depth');
   const propDepthLabel = document.getElementById('prop-depth-label');
   const propDeckDepthRow = document.getElementById('prop-deck-depth-row');
@@ -43,20 +44,29 @@ export function createPropertiesPanel({ getObject, snapToGrid, onChange }) {
     propZ.value = object.position.z.toFixed(2);
     propY.value = object.position.y.toFixed(2);
     propRotation.value = THREE.MathUtils.radToDeg(object.rotation.y).toFixed(0);
-    propWidthRow.hidden = object.type === 'hip' || object.type === 'volcano' || object.type === 'bank' || object.type === 'pyramid' || object.type === 'rail';
+
+    const showWidth = ['box', 'ledge', 'quarterPipe', 'halfPipe', 'stairs'].includes(object.type);
+    const showDepth = ['box', 'ledge'].includes(object.type);
+    const showRadius = ['quarterPipe', 'halfPipe', 'corner', 'hip', 'volcano'].includes(object.type);
+    const showLength = ['bank', 'pyramid', 'rail'].includes(object.type);
+
+    propWidthRow.hidden = !showWidth;
     propWidth.value = object.params.width ?? '';
+
     propHeightLabel.textContent = object.type === 'stairs' ? 'Stair Height' : 'Height';
     propHeight.value = object.params.height;
 
-    if (object.type === 'quarterPipe' || object.type === 'halfPipe' || object.type === 'corner' || object.type === 'hip' || object.type === 'volcano') {
+    propDepthRow.hidden = !(showDepth || showRadius || showLength);
+
+    if (showRadius) {
       propDepthLabel.textContent = 'Radius';
       propDepth.dataset.prop = 'params.radius';
       propDepth.value = object.params.radius ?? object.params.depth ?? 2;
-    } else if (object.type === 'bank' || object.type === 'pyramid' || object.type === 'rail') {
+    } else if (showLength) {
       propDepthLabel.textContent = object.type === 'pyramid' ? 'Bank Length' : 'Length';
       propDepth.dataset.prop = 'params.length';
       propDepth.value = object.params.length;
-    } else {
+    } else if (showDepth) {
       propDepthLabel.textContent = 'Depth';
       propDepth.dataset.prop = 'params.depth';
       propDepth.value = object.params.depth;
