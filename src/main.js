@@ -8,6 +8,7 @@ import { createMeasureTool } from './editor/measureTool.js';
 import { createObjectRenderer } from './editor/objectRenderer.js';
 import { createSelection } from './editor/selection.js';
 import { createShortcuts } from './editor/shortcuts.js';
+import { createLayersPanel } from './ui/layersPanel.js';
 import { createPropertiesPanel } from './ui/propertiesPanel.js';
 import { createToolbar } from './ui/toolbar.js';
 import {
@@ -53,6 +54,10 @@ let pendingObjectType = null;
 let previewMesh = null;
 let dragging = null;
 
+const layersPanel = createLayersPanel({
+  selectObject,
+});
+
 const propertiesPanel = createPropertiesPanel({
   getObject: () => selectedObjectId ? getObjectById(selectedObjectId) : null,
   snapToGrid,
@@ -94,6 +99,7 @@ const selection = createSelection({
 function renderObjects() {
   objectRenderer.render();
   selection.updateHelper();
+  layersPanel.update();
 }
 
 function selectObject(objectId) {
@@ -101,6 +107,7 @@ function selectObject(objectId) {
   selectedObjectId = objectId;
   selection.select(objectId);
   propertiesPanel.update();
+  layersPanel.update();
 
   if (objectId) {
     status.textContent = `Selected ${objectId}`;
@@ -299,6 +306,7 @@ createShortcuts({
 });
 
 propertiesPanel.update();
+layersPanel.update();
 
 function onResize() {
   camera.aspect = app.clientWidth / app.clientHeight;
