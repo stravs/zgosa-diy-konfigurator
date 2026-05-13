@@ -22,6 +22,10 @@
           <button id="new-scene" type="button">New</button>
           <button id="save-json" type="button">Save JSON</button>
           <button id="load-json" type="button">Load JSON</button>
+          <label class="topbar-toggle">
+            <input id="toggle-grid" type="checkbox" checked />
+            Grid
+          </label>
           <input id="load-json-input" type="file" accept="application/json,.json" hidden />
         </div>
         <div id="status">Ground hit: —</div>
@@ -137,6 +141,8 @@
         <span><kbd>Esc</kbd> Clear / Unselect</span>
         <span><kbd>Del</kbd> Delete</span>
         <span><kbd>Ctrl</kbd> + <kbd>D</kbd> Duplicate</span>
+        <span>Drag Empty Area Box Select</span>
+        <span><kbd>Shift</kbd> + Click/Drag Add Selection</span>
       </footer>
     </div>
     <div id="context-menu" class="context-menu" hidden>

@@ -3,10 +3,13 @@ import * as THREE from 'three';
 export function createDragging({
   scene,
   renderer,
+  camera,
   raycast,
   controls,
   selection,
+  objectMeshes,
   selectObject,
+  selectObjects,
   getSelectedId,
   getObjectById,
   snapToGrid,
@@ -24,9 +27,17 @@ export function createDragging({
   marker.visible = false;
   scene.add(marker);
 
+  const marquee = document.createElement('div');
+  marquee.className = 'marquee-select';
+  marquee.hidden = true;
+  document.body.appendChild(marquee);
+
   let lastGroundHit = { x: 0, y: 0, z: 0 };
   let isDraggingObject = false;
   let dragOffset = { x: 0, z: 0 };
+  let marqueeStart = null;
+  let marqueeCurrent = null;
+  let marqueeAdditive = false;
 
   function updateGroundMarker(hit) {
     if (!hit) {
@@ -51,10 +62,63 @@ export function createDragging({
     }
   }
 
+  function setMarqueeBox() {
+    if (!marqueeStart || !marqueeCurrent) {
+      return;
+    }
+
+    const left = Math.min(marqueeStart.x, marqueeCurrent.x);
+    const top = Math.min(marqueeStart.y, marqueeCurrent.y);
+    const width = Math.abs(marqueeStart.x - marqueeCurrent.x);
+    const height = Math.abs(marqueeStart.y - marqueeCurrent.y);
+
+    marquee.style.left = `${left}px`;
+    marquee.style.top = `${top}px`;
+    marquee.style.width = `${width}px`;
+    marquee.style.height = `${height}px`;
+    marquee.hidden = width < 4 && height < 4;
+  }
+
+  function isPointInMarquee(point) {
+    const left = Math.min(marqueeStart.x, marqueeCurrent.x);
+    const right = Math.max(marqueeStart.x, marqueeCurrent.x);
+    const top = Math.min(marqueeStart.y, marqueeCurrent.y);
+    const bottom = Math.max(marqueeStart.y, marqueeCurrent.y);
+
+    return point.x >= left && point.x <= right && point.y >= top && point.y <= bottom;
+  }
+
+  function getMarqueeObjectIds() {
+    const rect = renderer.domElement.getBoundingClientRect();
+    const ids = [];
+
+    for (const [id, mesh] of objectMeshes) {
+      const box = new THREE.Box3().setFromObject(mesh);
+      const center = box.getCenter(new THREE.Vector3());
+      const projected = center.project(camera);
+      const point = {
+        x: rect.left + ((projected.x + 1) / 2) * rect.width,
+        y: rect.top + ((-projected.y + 1) / 2) * rect.height,
+      };
+
+      if (isPointInMarquee(point)) {
+        ids.push(id);
+      }
+    }
+
+    return ids;
+  }
+
   function updatePointer(event) {
     const hit = raycast.getGroundHit(event);
     updateGroundMarker(hit);
     onGroundMove?.(hit);
+
+    if (marqueeStart) {
+      marqueeCurrent = { x: event.clientX, y: event.clientY };
+      setMarqueeBox();
+      return;
+    }
 
     const selectedObjectId = getSelectedId();
     const selectedMesh = selection.getSelectedMesh();
@@ -100,7 +164,10 @@ export function createDragging({
     const objectHit = raycast.getObjectHit(event);
 
     if (!objectHit) {
-      selectObject(null);
+      marqueeStart = { x: event.clientX, y: event.clientY };
+      marqueeCurrent = { ...marqueeStart };
+      marqueeAdditive = event.shiftKey;
+      setMarqueeBox();
       return;
     }
 
@@ -112,7 +179,14 @@ export function createDragging({
     }
 
     event.preventDefault();
-    selectObject(objectId);
+    selectObject(objectId, { toggle: event.shiftKey });
+
+    const selectedIds = selection.getSelectedIds();
+
+    if (event.shiftKey || selectedIds.length > 1 || !selectedIds.includes(objectId)) {
+      return;
+    }
+
     controls.enabled = false;
     isDraggingObject = true;
     dragOffset = {
@@ -122,6 +196,28 @@ export function createDragging({
   }
 
   function onPointerUp() {
+    if (marqueeStart && marqueeCurrent) {
+      const width = Math.abs(marqueeStart.x - marqueeCurrent.x);
+      const height = Math.abs(marqueeStart.y - marqueeCurrent.y);
+
+      marquee.hidden = true;
+
+      if (width < 4 && height < 4) {
+        selectObject(null);
+      } else {
+        const ids = getMarqueeObjectIds();
+        const nextIds = marqueeAdditive
+          ? [...new Set([...selection.getSelectedIds(), ...ids])]
+          : ids;
+        selectObjects(nextIds);
+      }
+
+      marqueeStart = null;
+      marqueeCurrent = null;
+      marqueeAdditive = false;
+      return;
+    }
+
     if (!isDraggingObject) {
       return;
     }
@@ -139,6 +235,9 @@ export function createDragging({
     stopDragging: () => {
       isDraggingObject = false;
       controls.enabled = true;
+      marquee.hidden = true;
+      marqueeStart = null;
+      marqueeCurrent = null;
     },
   };
 }

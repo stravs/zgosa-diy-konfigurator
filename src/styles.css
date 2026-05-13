@@ -208,7 +208,17 @@ body {
 
 .topbar-actions {
   display: flex;
+  align-items: center;
   gap: 8px;
+}
+
+.topbar-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #cbd5e1;
+  font-size: 13px;
+  cursor: pointer;
 }
 
 .topbar-actions button {
@@ -289,6 +299,14 @@ body {
 
 .context-menu button:hover {
   background: #334155;
+}
+
+.marquee-select {
+  position: fixed;
+  z-index: 19;
+  border: 1px solid rgba(56, 189, 248, 0.95);
+  background: rgba(56, 189, 248, 0.16);
+  pointer-events: none;
 }
 
 .measure-tooltip {

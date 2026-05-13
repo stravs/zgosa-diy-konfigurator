@@ -21,12 +21,14 @@ import {
 
 const app = document.getElementById('app');
 const status = document.getElementById('status');
+const toggleGridInput = document.getElementById('toggle-grid');
 
 const {
   renderer,
   scene,
   camera,
   ground,
+  grid,
   objectLayer,
 } = createScene(app);
 
@@ -101,36 +103,54 @@ function renderObjects() {
   layersPanel.update();
 }
 
-function selectObject(objectId) {
-  measureTool.clear();
-  selectedObjectId = objectId;
-  selection.select(objectId);
+function showSelectionStatus(selectedIds) {
+  selectedObjectId = selectedIds.length === 1 ? selectedIds[0] : null;
   propertiesPanel.update();
   layersPanel.update();
 
-  if (objectId) {
-    status.textContent = `Selected ${objectId}`;
+  if (selectedIds.length > 1) {
+    status.textContent = `Selected ${selectedIds.length} objects`;
+  } else if (selectedIds.length === 1) {
+    status.textContent = `Selected ${selectedIds[0]}`;
   } else {
     dragging?.stopDragging();
     status.textContent = 'No selection';
   }
 }
 
+function selectObject(objectId, options = {}) {
+  measureTool.clear();
+
+  if (options.toggle) {
+    selection.toggle(objectId);
+  } else {
+    selection.select(objectId);
+  }
+
+  showSelectionStatus(selection.getSelectedIds());
+}
+
+function selectObjects(objectIds) {
+  measureTool.clear();
+  selection.selectMany(objectIds);
+  showSelectionStatus(selection.getSelectedIds());
+}
+
 function deleteSelected() {
-  if (!selectedObjectId) {
+  const selectedIds = selection.getSelectedIds();
+
+  if (selectedIds.length === 0) {
     return;
   }
 
-  const removedObject = removeObject(selectedObjectId);
-
-  if (!removedObject) {
-    return;
+  for (const id of selectedIds) {
+    removeObject(id);
   }
 
   selectObject(null);
   renderObjects();
   propertiesPanel.update();
-  status.textContent = `Deleted ${removedObject.id}`;
+  status.textContent = `Deleted ${selectedIds.length} object${selectedIds.length === 1 ? '' : 's'}`;
 }
 
 function duplicateSelected() {
@@ -248,10 +268,13 @@ function placePendingObject(hit) {
 dragging = createDragging({
   scene,
   renderer,
+  camera,
   raycast,
   controls,
   selection,
+  objectMeshes,
   selectObject,
+  selectObjects,
   getSelectedId: () => selectedObjectId,
   getObjectById,
   snapToGrid,
@@ -285,6 +308,10 @@ createToolbar({
     status.textContent = message;
   },
 });
+toggleGridInput.addEventListener('change', () => {
+  grid.visible = toggleGridInput.checked;
+});
+
 document.querySelectorAll('[data-add-object]').forEach((button) => {
   button.addEventListener('click', () => {
     startPlacement(button.dataset.addObject);

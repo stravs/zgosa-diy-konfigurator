@@ -55,6 +55,7 @@ export function createScene(app) {
     scene,
     camera,
     ground,
+    grid,
     objectLayer,
   };
 }
