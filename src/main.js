@@ -463,6 +463,7 @@ dragging = createDragging({
 
     return placePendingObject(hit);
   },
+  onLongPressEmpty: openObjectsDrawer,
 });
 
 createToolbar({

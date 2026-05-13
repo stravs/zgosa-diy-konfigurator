@@ -7,6 +7,15 @@
 
 * {
   box-sizing: border-box;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 [hidden] {
@@ -478,7 +487,7 @@ body.show-right-panel .drawer-handle-right {
   }
 
   .topbar h1 {
-    font-size: 13px;
+    font-size: 11px;
   }
 
   .topbar-actions {
@@ -487,8 +496,8 @@ body.show-right-panel .drawer-handle-right {
   }
 
   .topbar-actions button {
-    padding: 7px 8px;
-    font-size: 12px;
+    padding: 6px 7px;
+    font-size: 11px;
   }
 
   .topbar-toggle {
@@ -508,8 +517,8 @@ body.show-right-panel .drawer-handle-right {
   .left-panel button,
   .layer-item,
   #properties-form input {
-    min-height: 42px;
-    font-size: 15px;
+    min-height: 36px;
+    font-size: 12px;
   }
 
   .bottombar {
@@ -532,15 +541,15 @@ body.show-right-panel .drawer-handle-right {
     align-items: center;
     justify-content: center;
     flex: 0 0 auto;
-    min-width: 66px;
-    min-height: 42px;
-    padding: 8px 10px;
+    min-width: 58px;
+    min-height: 36px;
+    padding: 6px 8px;
     border: 1px solid rgba(148, 163, 184, 0.28);
     border-radius: 10px;
     background: #1e293b;
     color: #e2e8f0;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 11px;
   }
 
   .mobile-tool:active {

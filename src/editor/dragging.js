@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 
+const LONG_PRESS_MS = 550;
+
 export function createDragging({
   scene,
   renderer,
@@ -20,6 +22,7 @@ export function createDragging({
   setStatus,
   onGroundMove,
   onPrimaryClick,
+  onLongPressEmpty,
 }) {
   const marker = new THREE.Mesh(
     new THREE.CylinderGeometry(0.18, 0.18, 0.05, 24),
@@ -40,6 +43,10 @@ export function createDragging({
   let marqueeStart = null;
   let marqueeCurrent = null;
   let marqueeAdditive = false;
+  let longPressTimer = null;
+  let longPressStart = null;
+  let touchEmptyStart = null;
+  let touchObjectId = null;
 
   function updateGroundMarker(hit) {
     if (!hit) {
@@ -111,7 +118,26 @@ export function createDragging({
     return ids;
   }
 
+  function cancelLongPress() {
+    if (longPressTimer) {
+      window.clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+
+    longPressStart = null;
+    touchObjectId = null;
+  }
+
   function updatePointer(event) {
+    if (longPressStart) {
+      const distance = Math.hypot(event.clientX - longPressStart.x, event.clientY - longPressStart.y);
+
+      if (distance > 10) {
+        cancelLongPress();
+        touchEmptyStart = null;
+      }
+    }
+
     const hit = raycast.getGroundHit(event);
     updateGroundMarker(hit);
     onGroundMove?.(hit);
@@ -163,10 +189,21 @@ export function createDragging({
       return;
     }
 
-    const objectHit = raycast.getObjectHit(event);
+    let objectHit = raycast.getObjectHit(event);
+
+    if (objectHit && isObjectLocked(objectHit.object.userData.objectId)) {
+      objectHit = null;
+    }
 
     if (!objectHit) {
       if (event.pointerType === 'touch') {
+        touchEmptyStart = { x: event.clientX, y: event.clientY };
+        longPressStart = { x: event.clientX, y: event.clientY };
+        longPressTimer = window.setTimeout(() => {
+          longPressTimer = null;
+          longPressStart = null;
+          onLongPressEmpty?.();
+        }, LONG_PRESS_MS);
         return;
       }
 
@@ -178,14 +215,25 @@ export function createDragging({
     }
 
     const objectId = objectHit.object.userData.objectId;
-
-    if (isObjectLocked(objectId)) {
-      return;
-    }
-
     const object = getObjectById(objectId);
 
     if (!object || !groundHit) {
+      return;
+    }
+
+    if (event.pointerType === 'touch') {
+      touchObjectId = objectId;
+      longPressStart = { x: event.clientX, y: event.clientY };
+      longPressTimer = window.setTimeout(() => {
+        const id = touchObjectId;
+        longPressTimer = null;
+        longPressStart = null;
+        touchObjectId = null;
+
+        if (id) {
+          selectObject(id, { editGroupItem: true });
+        }
+      }, LONG_PRESS_MS);
       return;
     }
 
@@ -228,7 +276,21 @@ export function createDragging({
     selectObject(objectId, { editGroupItem: true });
   }
 
-  function onPointerUp() {
+  function onPointerUp(event) {
+    const touchTapStart = touchEmptyStart;
+    touchEmptyStart = null;
+    cancelLongPress();
+
+    if (touchTapStart) {
+      const distance = Math.hypot(event.clientX - touchTapStart.x, event.clientY - touchTapStart.y);
+
+      if (distance <= 10) {
+        selectObject(null);
+      }
+
+      return;
+    }
+
     if (marqueeStart && marqueeCurrent) {
       const width = Math.abs(marqueeStart.x - marqueeCurrent.x);
       const height = Math.abs(marqueeStart.y - marqueeCurrent.y);
@@ -272,6 +334,8 @@ export function createDragging({
       marquee.hidden = true;
       marqueeStart = null;
       marqueeCurrent = null;
+      touchEmptyStart = null;
+      cancelLongPress();
     },
   };
 }
