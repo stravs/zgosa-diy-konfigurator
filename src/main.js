@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { catalog } from './catalog/index.js';
 import { createScene } from './core/scene.js';
 import { createObjectRenderer } from './editor/objectRenderer.js';
+import { createSelection } from './editor/selection.js';
 import { createContextMenu } from './ui/contextMenu.js';
 import { createPropertiesPanel } from './ui/propertiesPanel.js';
 import { createToolbar } from './ui/toolbar.js';
@@ -55,37 +55,8 @@ const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 const objectRenderer = createObjectRenderer(objectLayer);
 const { objectMeshes } = objectRenderer;
-const selectionHelper = new THREE.BoxHelper(new THREE.Object3D(), 0xf97316);
-selectionHelper.visible = false;
-scene.add(selectionHelper);
-
-const transformControls = new TransformControls(camera, renderer.domElement);
-transformControls.setMode('translate');
-transformControls.setTranslationSnap(state.scene.gridSize);
-transformControls.setRotationSnap(Math.PI / 2);
-scene.add(transformControls.getHelper());
-
-function simplifyTransformGizmo() {
-  const helper = transformControls.getHelper();
-  const mode = transformControls.getMode();
-  const hiddenTranslateHandles = new Set(['XY', 'YZ', 'XZ', 'XYZ', 'XYZE', 'E']);
-
-  helper.traverse((child) => {
-    if (!child.name) {
-      return;
-    }
-
-    if (mode === 'translate' && hiddenTranslateHandles.has(child.name)) {
-      child.visible = false;
-    }
-  });
-}
-
-simplifyTransformGizmo();
-
 let lastGroundHit = { x: 0, y: 0, z: 0 };
 let selectedObjectId = null;
-let selectedMesh = null;
 let isDraggingObject = false;
 let dragOffset = { x: 0, z: 0 };
 
@@ -104,26 +75,28 @@ function snapToGrid(value) {
   return Math.round(value / gridSize) * gridSize;
 }
 
+const selection = createSelection({
+  scene,
+  camera,
+  renderer,
+  controls,
+  objectMeshes,
+  onChange: () => {
+    propertiesPanel.update();
+  },
+  setStatus: (message) => {
+    status.textContent = message;
+  },
+});
+
 function renderObjects() {
   objectRenderer.render();
-  updateSelectionHelper();
-}
-
-function updateSelectionHelper() {
-  selectedMesh = selectedObjectId ? objectMeshes.get(selectedObjectId) ?? null : null;
-  selectionHelper.visible = Boolean(selectedMesh);
-
-  if (selectedMesh) {
-    selectionHelper.setFromObject(selectedMesh);
-    transformControls.attach(selectedMesh);
-  } else {
-    transformControls.detach();
-  }
+  selection.updateHelper();
 }
 
 function selectObject(objectId) {
   selectedObjectId = objectId;
-  updateSelectionHelper();
+  selection.select(objectId);
   propertiesPanel.update();
 
   if (objectId) {
@@ -159,7 +132,7 @@ function deleteSelected() {
     return;
   }
 
-  selectedObjectId = null;
+  selectObject(null);
   renderObjects();
   propertiesPanel.update();
   status.textContent = `Deleted ${removedObject.id}`;
@@ -182,41 +155,6 @@ function duplicateSelected() {
   renderObjects();
   selectObject(copy.id);
   status.textContent = `Duplicated ${copy.id}`;
-}
-
-function setTransformMode(mode) {
-  transformControls.setMode(mode);
-
-  if (mode === 'rotate') {
-    transformControls.showX = false;
-    transformControls.showY = true;
-    transformControls.showZ = false;
-  } else {
-    transformControls.showX = true;
-    transformControls.showY = true;
-    transformControls.showZ = true;
-  }
-
-  simplifyTransformGizmo();
-  status.textContent = `${mode === 'rotate' ? 'Rotate' : 'Move'} tool active`;
-}
-
-function syncSelectedObjectFromMesh() {
-  const object = selectedObjectId ? getObjectById(selectedObjectId) : null;
-
-  if (!object || !selectedMesh) {
-    return;
-  }
-
-  object.position.x = selectedMesh.position.x;
-  object.position.y = selectedMesh.position.y;
-  object.position.z = selectedMesh.position.z;
-  object.rotation.x = selectedMesh.rotation.x;
-  object.rotation.y = selectedMesh.rotation.y;
-  object.rotation.z = selectedMesh.rotation.z;
-
-  selectionHelper.setFromObject(selectedMesh);
-  propertiesPanel.update();
 }
 
 function spawnObject(type, position = lastGroundHit) {
@@ -299,6 +237,8 @@ function updatePointer(event) {
   const hit = getGroundHit(event);
   updateGroundMarker(hit);
 
+  const selectedMesh = selection.getSelectedMesh();
+
   if (!isDraggingObject || !selectedObjectId || !selectedMesh || !hit) {
     return;
   }
@@ -315,7 +255,7 @@ function updatePointer(event) {
   object.position.x = nextX;
   object.position.z = nextZ;
   selectedMesh.position.set(nextX, object.position.y, nextZ);
-  selectionHelper.setFromObject(selectedMesh);
+  selection.updateSelectedMeshBounds();
   propertiesPanel.update();
   status.textContent = `Moving ${object.id}: x ${nextX.toFixed(2)}, z ${nextZ.toFixed(2)}`;
 }
@@ -326,10 +266,6 @@ function getObjectHit(event) {
   return hits.find((hit) => hit.object.userData.objectId) ?? null;
 }
 
-function isUsingTransformControls() {
-  return Boolean(selectedObjectId && transformControls.axis);
-}
-
 function onPointerDown(event) {
   contextMenuController.hide();
 
@@ -337,7 +273,7 @@ function onPointerDown(event) {
     return;
   }
 
-  if (isUsingTransformControls()) {
+  if (selection.isUsingTransformControls()) {
     return;
   }
 
@@ -379,22 +315,14 @@ renderer.domElement.addEventListener('pointermove', updatePointer);
 renderer.domElement.addEventListener('pointerdown', onPointerDown, { capture: true });
 window.addEventListener('pointerup', onPointerUp);
 
-transformControls.addEventListener('dragging-changed', (event) => {
-  controls.enabled = !event.value;
-});
-
-transformControls.addEventListener('objectChange', () => {
-  syncSelectedObjectFromMesh();
-});
-
 document.querySelectorAll('[data-add-object]').forEach((button) => {
   button.addEventListener('click', () => {
     spawnObject(button.dataset.addObject);
   });
 });
 
-moveToolButton.addEventListener('click', () => setTransformMode('translate'));
-rotateToolButton.addEventListener('click', () => setTransformMode('rotate'));
+moveToolButton.addEventListener('click', () => selection.setTransformMode('translate'));
+rotateToolButton.addEventListener('click', () => selection.setTransformMode('rotate'));
 rotateSelectedButton.addEventListener('click', rotateSelected);
 duplicateSelectedButton.addEventListener('click', duplicateSelected);
 deleteSelectedButton.addEventListener('click', deleteSelected);
@@ -411,9 +339,9 @@ window.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
     selectObject(null);
   } else if (event.key === 'w' || event.key === 'W') {
-    setTransformMode('translate');
+    selection.setTransformMode('translate');
   } else if (event.key === 'e' || event.key === 'E') {
-    setTransformMode('rotate');
+    selection.setTransformMode('rotate');
   } else if (event.key === 'r' || event.key === 'R') {
     rotateSelected();
   } else if (event.key === 'Delete' || event.key === 'Backspace') {
