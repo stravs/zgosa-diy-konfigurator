@@ -158,5 +158,9 @@ export function getDefaultParams(type) {
     return { width: 2.4, height: 0.18, stepCount: 5, treadDepth: 0.35 };
   }
 
+  if (type === 'skater') {
+    return { height: 1.8 };
+  }
+
   throw new Error(`Unknown object type: ${type}`);
 }

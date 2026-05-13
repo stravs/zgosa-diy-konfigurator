@@ -158,6 +158,7 @@ function getPreviewParams(type) {
   if (type === 'pyramid') return { height: 0.8, length: 2.0, topSize: 1.2 };
   if (type === 'rail') return { height: 0.7, length: 3.0, railRadius: 0.05 };
   if (type === 'stairs') return { width: 2.4, height: 0.18, stepCount: 5, treadDepth: 0.35 };
+  if (type === 'skater') return { height: 1.8 };
   return {};
 }
 

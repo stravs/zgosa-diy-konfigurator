@@ -9,6 +9,7 @@ import { createBank } from './bank.js';
 import { createPyramid } from './pyramid.js';
 import { createRail } from './rail.js';
 import { createStairs } from './stairs.js';
+import { createSkater } from './skater.js';
 
 export const catalog = {
   box: {
@@ -58,6 +59,10 @@ export const catalog = {
   stairs: {
     label: 'Stairs',
     createMesh: createStairs,
+  },
+  skater: {
+    label: 'Skater',
+    createMesh: createSkater,
   },
 };
 
