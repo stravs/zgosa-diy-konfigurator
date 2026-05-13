@@ -18,6 +18,7 @@ import {
   duplicateObject,
   getGroupById,
   getObjectById,
+  loadState,
   removeGroup,
   removeObject,
   renameGroup as renameGroupState,
@@ -70,6 +71,8 @@ let selectedGroupId = null;
 let pendingObjectType = null;
 let previewMesh = null;
 let dragging = null;
+let initialObjectIds = new Set();
+let initialGroupIds = new Set();
 
 const history = createHistory({
   onRestore: () => {
@@ -229,6 +232,29 @@ function renameGroup(groupId, name) {
 
   layersPanel.update();
   status.textContent = `Renamed group: ${group.name}`;
+}
+
+function clearNewSceneObjects() {
+  const newObjectIds = state.objects
+    .filter((object) => !initialObjectIds.has(object.id))
+    .map((object) => object.id);
+
+  const newGroupIds = state.groups
+    .filter((group) => !initialGroupIds.has(group.id))
+    .map((group) => group.id);
+
+  if (newObjectIds.length === 0 && newGroupIds.length === 0) {
+    status.textContent = 'Nothing new to clear';
+    return;
+  }
+
+  for (const groupId of newGroupIds) {
+    removeGroup(groupId);
+  }
+
+  for (const objectId of newObjectIds) {
+    removeObject(objectId);
+  }
 }
 
 function ungroupSelected() {
@@ -415,6 +441,7 @@ dragging = createDragging({
 
 createToolbar({
   beforeReset: () => history.record(),
+  resetSceneState: clearNewSceneObjects,
   beforeLoad: () => history.record(),
   afterReset: () => {
     selectObject(null);
@@ -604,8 +631,32 @@ createShortcuts({
   redo: redoAction,
 });
 
+async function loadInitialScene() {
+  try {
+    const response = await fetch('./zgosa.json');
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const snapshot = await response.json();
+    loadState(snapshot);
+    initialObjectIds = new Set(state.objects.map((object) => object.id));
+    initialGroupIds = new Set(state.groups.map((group) => group.id));
+    selectObject(null);
+    renderObjects();
+    propertiesPanel.update();
+    layersPanel.update();
+    status.textContent = `Loaded zgosa.json (${state.objects.length} objects)`;
+  } catch (error) {
+    console.error(error);
+    status.textContent = 'Could not load zgosa.json';
+  }
+}
+
 propertiesPanel.update();
 layersPanel.update();
+loadInitialScene();
 
 function onResize() {
   camera.aspect = app.clientWidth / app.clientHeight;

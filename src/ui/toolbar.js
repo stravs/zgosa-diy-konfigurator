@@ -5,7 +5,7 @@ import {
   state,
 } from '../state/store.js';
 
-export function createToolbar({ beforeReset, beforeLoad, afterReset, afterLoad, setStatus }) {
+export function createToolbar({ beforeReset, resetSceneState, beforeLoad, afterReset, afterLoad, setStatus }) {
   const newSceneButton = document.getElementById('new-scene');
   const saveJsonButton = document.getElementById('save-json');
   const loadJsonButton = document.getElementById('load-json');
@@ -30,9 +30,14 @@ export function createToolbar({ beforeReset, beforeLoad, afterReset, afterLoad, 
     }
 
     beforeReset?.();
-    resetState();
+    if (resetSceneState) {
+      resetSceneState();
+    } else {
+      resetState();
+    }
+
     afterReset();
-    setStatus('New scene');
+    setStatus('Cleared');
   }
 
   async function loadJsonFile(file) {
