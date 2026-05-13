@@ -26,7 +26,7 @@ export function createSelection({ scene, camera, renderer, controls, objectMeshe
   const transformControls = new TransformControls(camera, renderer.domElement);
   transformControls.setMode('translate');
   transformControls.setTranslationSnap(state.scene.gridSize);
-  transformControls.setRotationSnap(Math.PI / 2);
+  transformControls.setRotationSnap(THREE.MathUtils.degToRad(1));
   scene.add(transformControls.getHelper());
   simplifyTransformGizmo(transformControls);
 
