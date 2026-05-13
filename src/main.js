@@ -21,7 +21,6 @@ import {
 
 const app = document.getElementById('app');
 const status = document.getElementById('status');
-const deleteSelectedButton = document.getElementById('delete-selected');
 
 const {
   renderer,
@@ -290,8 +289,6 @@ document.querySelectorAll('[data-add-object]').forEach((button) => {
     startPlacement(button.dataset.addObject);
   });
 });
-
-deleteSelectedButton.addEventListener('click', deleteSelected);
 
 createShortcuts({
   unselect: () => selectObject(null),
