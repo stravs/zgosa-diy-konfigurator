@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { catalog } from './catalog/index.js';
+import { catalog, createObjectMesh } from './catalog/index.js';
 import { createRaycaster } from './core/raycast.js';
 import { createScene } from './core/scene.js';
 import { createDragging } from './editor/dragging.js';
 import { createObjectRenderer } from './editor/objectRenderer.js';
 import { createSelection } from './editor/selection.js';
-import { createContextMenu } from './ui/contextMenu.js';
+import { createShortcuts } from './editor/shortcuts.js';
 import { createPropertiesPanel } from './ui/propertiesPanel.js';
 import { createToolbar } from './ui/toolbar.js';
 import {
@@ -21,7 +21,6 @@ const app = document.getElementById('app');
 const status = document.getElementById('status');
 const moveToolButton = document.getElementById('move-tool');
 const rotateToolButton = document.getElementById('rotate-tool');
-const rotateSelectedButton = document.getElementById('rotate-selected');
 const duplicateSelectedButton = document.getElementById('duplicate-selected');
 const deleteSelectedButton = document.getElementById('delete-selected');
 
@@ -40,16 +39,21 @@ controls.maxPolarAngle = Math.PI * 0.48;
 controls.minDistance = 4;
 controls.maxDistance = 80;
 controls.mouseButtons = {
-  LEFT: THREE.MOUSE.ROTATE,
-  MIDDLE: THREE.MOUSE.PAN,
-  RIGHT: null,
+  LEFT: null,
+  MIDDLE: THREE.MOUSE.ROTATE,
+  RIGHT: THREE.MOUSE.PAN,
 };
+renderer.domElement.addEventListener('contextmenu', (event) => {
+  event.preventDefault();
+});
 
 const raycast = createRaycaster({ renderer, camera, ground, objectLayer });
 const objectRenderer = createObjectRenderer(objectLayer);
 const { objectMeshes } = objectRenderer;
 let selectedObjectId = null;
-let contextMenuController = null;
+let pendingObjectType = null;
+let previewMesh = null;
+let dragging = null;
 
 const propertiesPanel = createPropertiesPanel({
   getObject: () => selectedObjectId ? getObjectById(selectedObjectId) : null,
@@ -93,22 +97,9 @@ function selectObject(objectId) {
   if (objectId) {
     status.textContent = `Selected ${objectId}`;
   } else {
-    dragging.stopDragging();
+    dragging?.stopDragging();
     status.textContent = 'No selection';
   }
-}
-
-function rotateSelected() {
-  const object = selectedObjectId ? getObjectById(selectedObjectId) : null;
-
-  if (!object) {
-    return;
-  }
-
-  object.rotation.y += Math.PI / 2;
-  renderObjects();
-  propertiesPanel.update();
-  status.textContent = `Rotated ${object.id}`;
 }
 
 function deleteSelected() {
@@ -147,16 +138,32 @@ function duplicateSelected() {
   status.textContent = `Duplicated ${copy.id}`;
 }
 
-function spawnObject(type, position = dragging.getLastGroundHit()) {
+function getPreviewParams(type) {
+  if (type === 'box') return { width: 2.4, height: 0.45, depth: 1.2 };
+  if (type === 'ledge') return { width: 3.0, height: 0.35, depth: 0.6 };
+  if (type === 'quarterPipe') return { width: 2.4, height: 1.2, radius: 2.0, deckDepth: 0.8 };
+  if (type === 'halfPipe') return { width: 2.4, height: 1.2, radius: 2.0, flatLength: 1.5, deckDepth: 0.8 };
+  if (type === 'corner') return { width: 2.4, height: 1.2, radius: 2.0, deckDepth: 0.8, degrees: 90 };
+  if (type === 'hip') return { height: 1.2, radius: 2.0, degrees: 90 };
+  if (type === 'volcano') return { height: 1.2, radius: 2.0, topRadius: 0.6 };
+  if (type === 'bank') return { width: 2.4, height: 0.8, length: 2.4 };
+  if (type === 'pyramid') return { height: 0.8, length: 2.0, topSize: 1.2 };
+  if (type === 'rail') return { height: 0.7, length: 3.0, railRadius: 0.05 };
+  if (type === 'stairs') return { width: 2.4, height: 0.18, stepCount: 5, treadDepth: 0.35 };
+  return {};
+}
+
+function spawnObject(type, position = null) {
   if (!catalog[type]) {
     console.warn(`Unknown object type: ${type}`);
     return;
   }
 
+  const spawnPosition = position ?? dragging?.getLastGroundHit() ?? { x: 0, y: 0, z: 0 };
   const object = addObject(type, {
-    x: snapToGrid(position.x),
-    y: position.y ?? 0,
-    z: snapToGrid(position.z),
+    x: snapToGrid(spawnPosition.x),
+    y: spawnPosition.y ?? 0,
+    z: snapToGrid(spawnPosition.z),
   });
 
   renderObjects();
@@ -164,7 +171,65 @@ function spawnObject(type, position = dragging.getLastGroundHit()) {
   status.textContent = `Added ${catalog[type].label}`;
 }
 
-const dragging = createDragging({
+function clearPlacementPreview() {
+  if (previewMesh) {
+    scene.remove(previewMesh);
+    previewMesh = null;
+  }
+
+  pendingObjectType = null;
+}
+
+function startPlacement(type) {
+  if (!catalog[type]) {
+    console.warn(`Unknown object type: ${type}`);
+    return;
+  }
+
+  clearPlacementPreview();
+  pendingObjectType = type;
+  const previewObject = {
+    id: '__preview__',
+    type,
+    position: { x: 0, y: 0, z: 0 },
+    rotation: { x: 0, y: 0, z: 0 },
+    params: getPreviewParams(type),
+  };
+
+  previewMesh = createObjectMesh(previewObject);
+  scene.add(previewMesh);
+  selectObject(null);
+  status.textContent = `Placing ${catalog[type].label}. Left click to place.`;
+}
+
+function updatePlacementPreview(hit) {
+  if (!previewMesh || !hit) {
+    return;
+  }
+
+  previewMesh.visible = true;
+  previewMesh.position.set(
+    snapToGrid(hit.point.x),
+    0,
+    snapToGrid(hit.point.z)
+  );
+}
+
+function placePendingObject(hit) {
+  if (!pendingObjectType || !hit) {
+    return false;
+  }
+
+  spawnObject(pendingObjectType, {
+    x: hit.point.x,
+    y: 0,
+    z: hit.point.z,
+  });
+  clearPlacementPreview();
+  return true;
+}
+
+dragging = createDragging({
   scene,
   renderer,
   raycast,
@@ -175,17 +240,12 @@ const dragging = createDragging({
   getObjectById,
   snapToGrid,
   updateProperties: () => propertiesPanel.update(),
-  hideContextMenu: () => contextMenuController?.hide(),
+  hideContextMenu: () => {},
   setStatus: (message) => {
     status.textContent = message;
   },
-});
-
-contextMenuController = createContextMenu({
-  renderer,
-  getGroundHit: raycast.getGroundHit,
-  spawnObject,
-  getLastGroundHit: dragging.getLastGroundHit,
+  onGroundMove: updatePlacementPreview,
+  onPrimaryClick: placePendingObject,
 });
 
 createToolbar({
@@ -205,39 +265,21 @@ createToolbar({
 });
 document.querySelectorAll('[data-add-object]').forEach((button) => {
   button.addEventListener('click', () => {
-    spawnObject(button.dataset.addObject);
+    startPlacement(button.dataset.addObject);
   });
 });
 
 moveToolButton.addEventListener('click', () => selection.setTransformMode('translate'));
 rotateToolButton.addEventListener('click', () => selection.setTransformMode('rotate'));
-rotateSelectedButton.addEventListener('click', rotateSelected);
 duplicateSelectedButton.addEventListener('click', duplicateSelected);
 deleteSelectedButton.addEventListener('click', deleteSelected);
 
-window.addEventListener('keydown', (event) => {
-  const target = event.target;
-  const isFormControl = target instanceof HTMLElement
-    && ['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName);
-
-  if (isFormControl) {
-    return;
-  }
-
-  if (event.key === 'Escape') {
-    selectObject(null);
-  } else if (event.key === 'w' || event.key === 'W') {
-    selection.setTransformMode('translate');
-  } else if (event.key === 'e' || event.key === 'E') {
-    selection.setTransformMode('rotate');
-  } else if (event.key === 'r' || event.key === 'R') {
-    rotateSelected();
-  } else if (event.key === 'Delete' || event.key === 'Backspace') {
-    deleteSelected();
-  } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'd') {
-    event.preventDefault();
-    duplicateSelected();
-  }
+createShortcuts({
+  unselect: () => selectObject(null),
+  setMoveTool: () => selection.setTransformMode('translate'),
+  setRotateTool: () => selection.setTransformMode('rotate'),
+  deleteSelected,
+  duplicateSelected,
 });
 
 propertiesPanel.update();

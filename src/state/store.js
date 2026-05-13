@@ -113,7 +113,7 @@ function getNextObjectId() {
   return highestId + 1;
 }
 
-function getDefaultParams(type) {
+export function getDefaultParams(type) {
   if (type === 'box') {
     return { width: 2.4, height: 0.45, depth: 1.2 };
   }

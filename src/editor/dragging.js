@@ -13,6 +13,8 @@ export function createDragging({
   updateProperties,
   hideContextMenu,
   setStatus,
+  onGroundMove,
+  onPrimaryClick,
 }) {
   const marker = new THREE.Mesh(
     new THREE.CylinderGeometry(0.18, 0.18, 0.05, 24),
@@ -52,6 +54,7 @@ export function createDragging({
   function updatePointer(event) {
     const hit = raycast.getGroundHit(event);
     updateGroundMarker(hit);
+    onGroundMove?.(hit);
 
     const selectedObjectId = getSelectedId();
     const selectedMesh = selection.getSelectedMesh();
@@ -84,6 +87,12 @@ export function createDragging({
       return;
     }
 
+    const groundHit = raycast.getGroundHit(event);
+
+    if (onPrimaryClick?.(groundHit)) {
+      return;
+    }
+
     if (selection.isUsingTransformControls()) {
       return;
     }
@@ -97,7 +106,6 @@ export function createDragging({
 
     const objectId = objectHit.object.userData.objectId;
     const object = getObjectById(objectId);
-    const groundHit = raycast.getGroundHit(event);
 
     if (!object || !groundHit) {
       return;
