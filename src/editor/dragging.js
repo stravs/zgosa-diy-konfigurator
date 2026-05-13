@@ -47,6 +47,7 @@ export function createDragging({
   let longPressStart = null;
   let touchEmptyStart = null;
   let touchObjectId = null;
+  const activeTouchPointers = new Set();
 
   function updateGroundMarker(hit) {
     if (!hit) {
@@ -129,6 +130,12 @@ export function createDragging({
   }
 
   function updatePointer(event) {
+    if (event.pointerType === 'touch' && activeTouchPointers.size > 1) {
+      cancelLongPress();
+      touchEmptyStart = null;
+      return;
+    }
+
     if (longPressStart) {
       const distance = Math.hypot(event.clientX - longPressStart.x, event.clientY - longPressStart.y);
 
@@ -174,6 +181,16 @@ export function createDragging({
 
   function onPointerDown(event) {
     hideContextMenu();
+
+    if (event.pointerType === 'touch') {
+      activeTouchPointers.add(event.pointerId);
+
+      if (activeTouchPointers.size > 1) {
+        cancelLongPress();
+        touchEmptyStart = null;
+        return;
+      }
+    }
 
     if (event.button !== 0) {
       return;
@@ -277,6 +294,10 @@ export function createDragging({
   }
 
   function onPointerUp(event) {
+    if (event.pointerType === 'touch') {
+      activeTouchPointers.delete(event.pointerId);
+    }
+
     const touchTapStart = touchEmptyStart;
     touchEmptyStart = null;
     cancelLongPress();
@@ -325,6 +346,7 @@ export function createDragging({
   renderer.domElement.addEventListener('pointerdown', onPointerDown, { capture: true });
   renderer.domElement.addEventListener('dblclick', onDoubleClick, { capture: true });
   window.addEventListener('pointerup', onPointerUp);
+  window.addEventListener('pointercancel', onPointerUp);
 
   return {
     getLastGroundHit: () => lastGroundHit,
