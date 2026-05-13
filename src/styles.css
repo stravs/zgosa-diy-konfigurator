@@ -47,7 +47,6 @@ body {
   top: 56px;
   bottom: 58px;
   z-index: 30;
-  width: min(86vw, 360px);
   padding: 16px;
   overflow-y: auto;
   background: rgba(15, 23, 42, 0.98);
@@ -56,12 +55,16 @@ body {
 
 .left-panel {
   left: 0;
+  width: max-content;
+  max-width: 86vw;
   transform: translateX(-105%);
   border-right: 1px solid rgba(148, 163, 184, 0.28);
 }
 
 .right-panel {
   right: 0;
+  width: max-content;
+  max-width: 86vw;
   transform: translateX(105%);
   border-left: 1px solid rgba(148, 163, 184, 0.28);
 }
@@ -111,6 +114,7 @@ body.show-right-panel .right-panel,
   color: #e2e8f0;
   cursor: pointer;
   text-align: left;
+  white-space: nowrap;
 }
 
 .left-panel button:hover,
@@ -375,16 +379,16 @@ body.show-right-panel .right-panel,
   position: fixed;
   top: 50%;
   z-index: 40;
-  width: 34px;
-  min-height: 108px;
+  width: 42px;
+  min-height: 54px;
   padding: 8px 6px;
   border: 1px solid rgba(148, 163, 184, 0.35);
   background: rgba(30, 41, 59, 0.98);
   color: #e2e8f0;
   cursor: grab;
-  font-size: 12px;
+  font-size: 22px;
   touch-action: none;
-  writing-mode: vertical-rl;
+  writing-mode: horizontal-tb;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
   transition: transform 160ms ease, background 160ms ease;
 }
@@ -406,12 +410,10 @@ body.show-right-panel .right-panel,
 }
 
 body.show-objects-panel .drawer-handle-left {
-  transform: translateY(-50%) translateX(min(86vw, 360px));
   background: #334155;
 }
 
 body.show-right-panel .drawer-handle-right {
-  transform: translateY(-50%) translateX(calc(-1 * min(86vw, 360px)));
   background: #334155;
 }
 
@@ -500,15 +502,7 @@ body.show-right-panel .drawer-handle-right {
   .left-panel,
   .right-panel {
     top: 48px;
-    width: min(86vw, 340px);
-  }
-
-  body.show-objects-panel .drawer-handle-left {
-    transform: translateY(-50%) translateX(min(86vw, 340px));
-  }
-
-  body.show-right-panel .drawer-handle-right {
-    transform: translateY(-50%) translateX(calc(-1 * min(86vw, 340px)));
+    max-width: 86vw;
   }
 
   .left-panel button,

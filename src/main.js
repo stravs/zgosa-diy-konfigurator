@@ -508,28 +508,42 @@ function clearDrawerInlineStyles() {
   layersHandleButton.style.transform = '';
 }
 
-function closeMobileDrawers() {
-  document.body.classList.remove('show-objects-panel', 'show-right-panel');
+function closeObjectsDrawer() {
+  document.body.classList.remove('show-objects-panel');
   leftPanel.classList.remove('drawer-open');
+  leftPanel.style.transform = '';
+  objectsHandleButton.style.transform = '';
+}
+
+function closeLayersDrawer() {
+  document.body.classList.remove('show-right-panel');
   rightPanel.classList.remove('drawer-open');
-  clearDrawerInlineStyles();
+  rightPanel.style.transform = '';
+  layersHandleButton.style.transform = '';
+}
+
+function closeMobileDrawers() {
+  closeObjectsDrawer();
+  closeLayersDrawer();
 }
 
 function openObjectsDrawer() {
-  closeMobileDrawers();
   document.body.classList.add('show-objects-panel');
   leftPanel.classList.add('drawer-open');
+  leftPanel.style.transform = '';
+  objectsHandleButton.style.transform = `translateY(-50%) translateX(${leftPanel.getBoundingClientRect().width}px)`;
 }
 
 function openLayersDrawer() {
-  closeMobileDrawers();
   document.body.classList.add('show-right-panel');
   rightPanel.classList.add('drawer-open');
+  rightPanel.style.transform = '';
+  layersHandleButton.style.transform = `translateY(-50%) translateX(${-rightPanel.getBoundingClientRect().width}px)`;
 }
 
 function toggleObjectsDrawer() {
   if (leftPanel.classList.contains('drawer-open')) {
-    closeMobileDrawers();
+    closeObjectsDrawer();
   } else {
     openObjectsDrawer();
   }
@@ -537,7 +551,7 @@ function toggleObjectsDrawer() {
 
 function toggleLayersDrawer() {
   if (rightPanel.classList.contains('drawer-open')) {
-    closeMobileDrawers();
+    closeLayersDrawer();
   } else {
     openLayersDrawer();
   }
@@ -601,8 +615,10 @@ function createDrawerHandleDrag({ handle, panel, side, open }) {
 
     if (latestProgress > 0.45) {
       open();
+    } else if (side === 'left') {
+      closeObjectsDrawer();
     } else {
-      closeMobileDrawers();
+      closeLayersDrawer();
     }
   });
 }

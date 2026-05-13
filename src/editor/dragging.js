@@ -166,6 +166,10 @@ export function createDragging({
     const objectHit = raycast.getObjectHit(event);
 
     if (!objectHit) {
+      if (event.pointerType === 'touch') {
+        return;
+      }
+
       marqueeStart = { x: event.clientX, y: event.clientY };
       marqueeCurrent = { ...marqueeStart };
       marqueeAdditive = event.shiftKey;
