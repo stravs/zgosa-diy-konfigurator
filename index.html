@@ -19,9 +19,9 @@
       <header class="topbar">
         <h1>Skate Park Configurator</h1>
         <div class="topbar-actions">
-          <button id="new-scene" type="button">New</button>
-          <button id="save-json" type="button">Save JSON</button>
-          <button id="load-json" type="button">Load JSON</button>
+          <button id="new-scene" type="button">Clear</button>
+          <button id="save-json" type="button">Save</button>
+          <button id="load-json" type="button">Load</button>
           <label class="topbar-toggle">
             <input id="toggle-grid" type="checkbox" checked />
             Grid
@@ -135,6 +135,12 @@
         </aside>
       </div>
       <footer class="bottombar">
+        <button id="mobile-move" class="mobile-tool" type="button">Move</button>
+        <button id="mobile-rotate" class="mobile-tool" type="button">Rotate</button>
+        <button id="mobile-measure" class="mobile-tool" type="button">Measure</button>
+        <button id="mobile-undo" class="mobile-tool" type="button">Undo</button>
+        <button id="mobile-redo" class="mobile-tool" type="button">Redo</button>
+        <button id="mobile-delete" class="mobile-tool danger" type="button">Delete</button>
         <span><kbd>Space</kbd> Move</span>
         <span><kbd>R</kbd> Rotate</span>
         <span><kbd>M</kbd> Measure</span>
@@ -143,12 +149,10 @@
         <span><kbd>Ctrl</kbd> + <kbd>D</kbd> Duplicate</span>
         <span><kbd>Ctrl</kbd> + <kbd>G</kbd> Group</span>
         <span><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>G</kbd> Ungroup</span>
-        <span><kbd>Ctrl</kbd> + <kbd>Z</kbd> Undo</span>
-        <span><kbd>Ctrl</kbd> + <kbd>Y</kbd> Redo</span>
-        <span>Drag Empty Area Box Select</span>
-        <span><kbd>Shift</kbd> + Click/Drag Add Selection</span>
       </footer>
     </div>
+    <button id="objects-handle" class="drawer-handle drawer-handle-left" type="button">Objects</button>
+    <button id="layers-handle" class="drawer-handle drawer-handle-right" type="button">Layers</button>
     <div id="context-menu" class="context-menu" hidden>
       <button data-context-add="box" type="button">Add Box</button>
       <button data-context-add="ledge" type="button">Add Ledge</button>

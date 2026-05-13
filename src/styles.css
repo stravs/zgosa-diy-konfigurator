@@ -17,6 +17,7 @@ html,
 body {
   margin: 0;
   height: 100%;
+  height: 100dvh;
 }
 
 body {
@@ -25,28 +26,49 @@ body {
 
 .app-shell {
   display: grid;
-  grid-template-rows: 56px 1fr 34px;
+  grid-template-rows: 56px 1fr 58px;
   height: 100%;
 }
 
 .workspace {
-  display: grid;
-  grid-template-columns: 180px 1fr 240px;
+  display: block;
+  position: relative;
   min-height: 0;
 }
 
 .left-panel,
 .right-panel {
+  position: fixed;
+  top: 56px;
+  bottom: 58px;
+  z-index: 30;
+  width: min(86vw, 360px);
   padding: 16px;
-  background: rgba(15, 23, 42, 0.9);
+  overflow-y: auto;
+  background: rgba(15, 23, 42, 0.98);
+  transition: transform 160ms ease;
 }
 
 .left-panel {
-  border-right: 1px solid rgba(148, 163, 184, 0.2);
+  left: 0;
+  transform: translateX(-105%);
+  border-right: 1px solid rgba(148, 163, 184, 0.28);
 }
 
 .right-panel {
-  border-left: 1px solid rgba(148, 163, 184, 0.2);
+  right: 0;
+  transform: translateX(105%);
+  border-left: 1px solid rgba(148, 163, 184, 0.28);
+}
+
+body.show-objects-panel .left-panel,
+.left-panel.drawer-open {
+  transform: translateX(0);
+}
+
+body.show-right-panel .right-panel,
+.right-panel.drawer-open {
+  transform: translateX(0);
 }
 
 .left-panel h2,
@@ -286,6 +308,8 @@ body {
 
 #app {
   position: relative;
+  width: 100%;
+  height: 100%;
   min-height: 0;
 }
 
@@ -314,6 +338,76 @@ body {
   color: #e2e8f0;
   font-family: inherit;
   font-size: 11px;
+}
+
+.mobile-tool {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: 66px;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 10px;
+  background: #1e293b;
+  color: #e2e8f0;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.mobile-tool:hover,
+.mobile-tool:active {
+  background: #334155;
+}
+
+.mobile-tool.danger {
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.45);
+}
+
+.drawer-handle {
+  position: fixed;
+  top: 50%;
+  z-index: 40;
+  width: 34px;
+  min-height: 108px;
+  padding: 8px 6px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(30, 41, 59, 0.98);
+  color: #e2e8f0;
+  cursor: grab;
+  font-size: 12px;
+  touch-action: none;
+  writing-mode: vertical-rl;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.drawer-handle:active {
+  cursor: grabbing;
+}
+
+.drawer-handle-left {
+  left: 0;
+  border-radius: 0 10px 10px 0;
+  transform: translateY(-50%);
+}
+
+.drawer-handle-right {
+  right: 0;
+  border-radius: 10px 0 0 10px;
+  transform: translateY(-50%);
+}
+
+body.show-objects-panel .drawer-handle-left {
+  transform: translateY(-50%) translateX(min(86vw, 360px));
+  background: #334155;
+}
+
+body.show-right-panel .drawer-handle-right {
+  transform: translateY(-50%) translateX(calc(-1 * min(86vw, 360px)));
+  background: #334155;
 }
 
 .context-menu {
@@ -364,3 +458,93 @@ body {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
+
+@media (max-width: 1100px), (pointer: coarse) {
+  .app-shell {
+    grid-template-rows: 48px 1fr 58px;
+  }
+
+  .topbar {
+    grid-template-columns: auto 1fr;
+    gap: 8px;
+    padding: 0 10px;
+  }
+
+  .topbar h1 {
+    font-size: 13px;
+  }
+
+  .topbar-actions {
+    justify-self: end;
+    gap: 6px;
+  }
+
+  .topbar-actions button {
+    padding: 7px 8px;
+    font-size: 12px;
+  }
+
+  .topbar-toggle {
+    display: none;
+  }
+
+  #status {
+    display: none;
+  }
+
+  .left-panel,
+  .right-panel {
+    top: 48px;
+    width: min(86vw, 340px);
+  }
+
+  body.show-objects-panel .drawer-handle-left {
+    transform: translateY(-50%) translateX(min(86vw, 340px));
+  }
+
+  body.show-right-panel .drawer-handle-right {
+    transform: translateY(-50%) translateX(calc(-1 * min(86vw, 340px)));
+  }
+
+  .left-panel button,
+  .layer-item,
+  #properties-form input {
+    min-height: 42px;
+    font-size: 15px;
+  }
+
+  .bottombar {
+    gap: 6px;
+    padding: 6px 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .bottombar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .bottombar span {
+    display: none;
+  }
+
+  .mobile-tool {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    min-width: 66px;
+    min-height: 42px;
+    padding: 8px 10px;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-radius: 10px;
+    background: #1e293b;
+    color: #e2e8f0;
+    cursor: pointer;
+    font-size: 13px;
+  }
+
+  .mobile-tool:active {
+    background: #334155;
+  }
+}

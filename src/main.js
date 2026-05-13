@@ -27,6 +27,16 @@ import {
 const app = document.getElementById('app');
 const status = document.getElementById('status');
 const toggleGridInput = document.getElementById('toggle-grid');
+const objectsHandleButton = document.getElementById('objects-handle');
+const layersHandleButton = document.getElementById('layers-handle');
+const mobileMoveButton = document.getElementById('mobile-move');
+const mobileRotateButton = document.getElementById('mobile-rotate');
+const mobileMeasureButton = document.getElementById('mobile-measure');
+const mobileUndoButton = document.getElementById('mobile-undo');
+const mobileRedoButton = document.getElementById('mobile-redo');
+const mobileDeleteButton = document.getElementById('mobile-delete');
+const leftPanel = document.querySelector('.left-panel');
+const rightPanel = document.querySelector('.right-panel');
 
 const {
   renderer,
@@ -324,6 +334,8 @@ function clearPlacementPreview() {
 }
 
 function startPlacement(type) {
+  closeMobileDrawers();
+
   if (!catalog[type]) {
     console.warn(`Unknown object type: ${type}`);
     return;
@@ -428,6 +440,154 @@ document.querySelectorAll('[data-add-object]').forEach((button) => {
   });
 });
 
+function undoAction() {
+  status.textContent = history.undo() ? 'Undo' : 'Nothing to undo';
+}
+
+function redoAction() {
+  status.textContent = history.redo() ? 'Redo' : 'Nothing to redo';
+}
+
+function clearDrawerInlineStyles() {
+  leftPanel.style.transform = '';
+  rightPanel.style.transform = '';
+  objectsHandleButton.style.transform = '';
+  layersHandleButton.style.transform = '';
+}
+
+function closeMobileDrawers() {
+  document.body.classList.remove('show-objects-panel', 'show-right-panel');
+  leftPanel.classList.remove('drawer-open');
+  rightPanel.classList.remove('drawer-open');
+  clearDrawerInlineStyles();
+}
+
+function openObjectsDrawer() {
+  closeMobileDrawers();
+  document.body.classList.add('show-objects-panel');
+  leftPanel.classList.add('drawer-open');
+}
+
+function openLayersDrawer() {
+  closeMobileDrawers();
+  document.body.classList.add('show-right-panel');
+  rightPanel.classList.add('drawer-open');
+}
+
+function toggleObjectsDrawer() {
+  if (leftPanel.classList.contains('drawer-open')) {
+    closeMobileDrawers();
+  } else {
+    openObjectsDrawer();
+  }
+}
+
+function toggleLayersDrawer() {
+  if (rightPanel.classList.contains('drawer-open')) {
+    closeMobileDrawers();
+  } else {
+    openLayersDrawer();
+  }
+}
+
+function setDrawerProgress(panel, handle, side, progress) {
+  const clampedProgress = THREE.MathUtils.clamp(progress, 0, 1);
+  const width = panel.getBoundingClientRect().width;
+
+  if (side === 'left') {
+    panel.style.transform = `translateX(${(clampedProgress - 1) * 100}%)`;
+    handle.style.transform = `translateY(-50%) translateX(${clampedProgress * width}px)`;
+  } else {
+    panel.style.transform = `translateX(${(1 - clampedProgress) * 100}%)`;
+    handle.style.transform = `translateY(-50%) translateX(${-clampedProgress * width}px)`;
+  }
+}
+
+function createDrawerHandleDrag({ handle, panel, side, open }) {
+  let startX = 0;
+  let startProgress = 0;
+  let latestProgress = 0;
+  let didDrag = false;
+
+  handle.addEventListener('pointerdown', (event) => {
+    event.preventDefault();
+    handle.setPointerCapture(event.pointerId);
+    startX = event.clientX;
+    startProgress = panel.classList.contains('drawer-open') ? 1 : 0;
+    latestProgress = startProgress;
+    didDrag = false;
+    panel.style.transition = 'none';
+    handle.style.transition = 'none';
+  });
+
+  handle.addEventListener('pointermove', (event) => {
+    if (!handle.hasPointerCapture(event.pointerId)) {
+      return;
+    }
+
+    const width = panel.getBoundingClientRect().width;
+    const delta = side === 'left' ? event.clientX - startX : startX - event.clientX;
+    latestProgress = THREE.MathUtils.clamp(startProgress + (delta / width), 0, 1);
+    didDrag = didDrag || Math.abs(delta) > 4;
+    setDrawerProgress(panel, handle, side, latestProgress);
+  });
+
+  handle.addEventListener('pointerup', (event) => {
+    if (!handle.hasPointerCapture(event.pointerId)) {
+      return;
+    }
+
+    handle.releasePointerCapture(event.pointerId);
+    panel.style.transition = '';
+    handle.style.transition = '';
+
+    if (!didDrag) {
+      open();
+      return;
+    }
+
+    if (latestProgress > 0.45) {
+      open();
+    } else {
+      closeMobileDrawers();
+    }
+  });
+}
+
+createDrawerHandleDrag({
+  handle: objectsHandleButton,
+  panel: leftPanel,
+  side: 'left',
+  open: toggleObjectsDrawer,
+});
+
+createDrawerHandleDrag({
+  handle: layersHandleButton,
+  panel: rightPanel,
+  side: 'right',
+  open: toggleLayersDrawer,
+});
+
+mobileMoveButton.addEventListener('click', () => {
+  closeMobileDrawers();
+  selection.setTransformMode('translate');
+});
+
+mobileRotateButton.addEventListener('click', () => {
+  closeMobileDrawers();
+  selection.setTransformMode('rotate');
+});
+
+mobileMeasureButton.addEventListener('click', () => {
+  closeMobileDrawers();
+  selectObject(null);
+  measureTool.activate();
+});
+
+mobileUndoButton.addEventListener('click', undoAction);
+mobileRedoButton.addEventListener('click', redoAction);
+mobileDeleteButton.addEventListener('click', deleteSelected);
+
 createShortcuts({
   unselect: () => selectObject(null),
   setMoveTool: () => selection.setTransformMode('translate'),
@@ -440,12 +600,8 @@ createShortcuts({
   duplicateSelected,
   groupSelected,
   ungroupSelected,
-  undo: () => {
-    status.textContent = history.undo() ? 'Undo' : 'Nothing to undo';
-  },
-  redo: () => {
-    status.textContent = history.redo() ? 'Redo' : 'Nothing to redo';
-  },
+  undo: undoAction,
+  redo: redoAction,
 });
 
 propertiesPanel.update();
