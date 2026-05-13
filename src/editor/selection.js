@@ -36,7 +36,7 @@ function getSelectionCenter(ids, objectMeshes) {
   return count === 0 ? center : center.divideScalar(count);
 }
 
-export function createSelection({ scene, camera, renderer, controls, objectMeshes, onChange, setStatus }) {
+export function createSelection({ scene, camera, renderer, controls, objectMeshes, onTransformStart, onChange, setStatus }) {
   const selectionHelper = new THREE.BoxHelper(new THREE.Object3D(), 0xf97316);
   selectionHelper.visible = false;
   scene.add(selectionHelper);
@@ -236,6 +236,7 @@ export function createSelection({ scene, camera, renderer, controls, objectMeshe
     controls.enabled = !event.value;
 
     if (event.value) {
+      onTransformStart?.();
       beginGroupTransform();
     } else if (transformSnapshot) {
       syncGroupTransform();

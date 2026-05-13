@@ -13,6 +13,7 @@ export function createDragging({
   getSelectedId,
   getObjectById,
   snapToGrid,
+  onBeforeChange,
   updateProperties,
   hideContextMenu,
   setStatus,
@@ -179,20 +180,36 @@ export function createDragging({
     }
 
     event.preventDefault();
-    selectObject(objectId, { toggle: event.shiftKey });
+    selectObject(objectId, {
+      toggle: event.shiftKey,
+      editGroupItem: event.detail >= 2,
+    });
 
     const selectedIds = selection.getSelectedIds();
 
-    if (event.shiftKey || selectedIds.length > 1 || !selectedIds.includes(objectId)) {
+    if (event.detail >= 2 || event.shiftKey || selectedIds.length > 1 || !selectedIds.includes(objectId)) {
       return;
     }
 
+    onBeforeChange?.();
     controls.enabled = false;
     isDraggingObject = true;
     dragOffset = {
       x: object.position.x - groundHit.point.x,
       z: object.position.z - groundHit.point.z,
     };
+  }
+
+  function onDoubleClick(event) {
+    const objectHit = raycast.getObjectHit(event);
+
+    if (!objectHit) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    selectObject(objectHit.object.userData.objectId, { editGroupItem: true });
   }
 
   function onPointerUp() {
@@ -228,6 +245,7 @@ export function createDragging({
 
   renderer.domElement.addEventListener('pointermove', updatePointer);
   renderer.domElement.addEventListener('pointerdown', onPointerDown, { capture: true });
+  renderer.domElement.addEventListener('dblclick', onDoubleClick, { capture: true });
   window.addEventListener('pointerup', onPointerUp);
 
   return {

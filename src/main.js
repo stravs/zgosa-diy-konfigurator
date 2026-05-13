@@ -11,10 +11,14 @@ import { createShortcuts } from './editor/shortcuts.js';
 import { createLayersPanel } from './ui/layersPanel.js';
 import { createPropertiesPanel } from './ui/propertiesPanel.js';
 import { createToolbar } from './ui/toolbar.js';
+import { createHistory } from './state/history.js';
 import {
   addObject,
+  createGroup,
   duplicateObject,
+  getGroupById,
   getObjectById,
+  removeGroup,
   removeObject,
   state,
 } from './state/store.js';
@@ -51,17 +55,32 @@ const raycast = createRaycaster({ renderer, camera, ground, objectLayer });
 const objectRenderer = createObjectRenderer(objectLayer);
 const { objectMeshes } = objectRenderer;
 let selectedObjectId = null;
+let selectedGroupId = null;
 let pendingObjectType = null;
 let previewMesh = null;
 let dragging = null;
 
+const history = createHistory({
+  onRestore: () => {
+    selectedGroupId = null;
+    selectedObjectId = null;
+    selection.select(null);
+    renderObjects();
+    propertiesPanel.update();
+    layersPanel.update();
+    status.textContent = 'Restored history';
+  },
+});
+
 const layersPanel = createLayersPanel({
   selectObject,
+  selectGroup,
 });
 
 const propertiesPanel = createPropertiesPanel({
   getObject: () => selectedObjectId ? getObjectById(selectedObjectId) : null,
   snapToGrid,
+  onBeforeChange: () => history.record(),
   onChange: (object) => {
     renderObjects();
     propertiesPanel.update();
@@ -89,6 +108,7 @@ const selection = createSelection({
   renderer,
   controls,
   objectMeshes,
+  onTransformStart: () => history.record(),
   onChange: () => {
     propertiesPanel.update();
   },
@@ -108,7 +128,10 @@ function showSelectionStatus(selectedIds) {
   propertiesPanel.update();
   layersPanel.update();
 
-  if (selectedIds.length > 1) {
+  if (selectedGroupId) {
+    const group = getGroupById(selectedGroupId);
+    status.textContent = group ? `Selected group: ${group.name}` : 'Selected group';
+  } else if (selectedIds.length > 1) {
     status.textContent = `Selected ${selectedIds.length} objects`;
   } else if (selectedIds.length === 1) {
     status.textContent = `Selected ${selectedIds[0]}`;
@@ -118,8 +141,23 @@ function showSelectionStatus(selectedIds) {
   }
 }
 
+function getGroupForObject(objectId) {
+  return state.groups.find((group) => group.objectIds.includes(objectId)) ?? null;
+}
+
 function selectObject(objectId, options = {}) {
   measureTool.clear();
+
+  const group = objectId && !options.editGroupItem && !options.skipGroupSelect
+    ? getGroupForObject(objectId)
+    : null;
+
+  if (group && !options.toggle) {
+    selectGroup(group.id);
+    return;
+  }
+
+  selectedGroupId = null;
 
   if (options.toggle) {
     selection.toggle(objectId);
@@ -130,10 +168,55 @@ function selectObject(objectId, options = {}) {
   showSelectionStatus(selection.getSelectedIds());
 }
 
-function selectObjects(objectIds) {
+function selectObjects(objectIds, options = {}) {
   measureTool.clear();
+  selectedGroupId = options.groupId ?? null;
   selection.selectMany(objectIds);
   showSelectionStatus(selection.getSelectedIds());
+}
+
+function selectGroup(groupId) {
+  const group = getGroupById(groupId);
+
+  if (!group) {
+    return;
+  }
+
+  selectObjects(group.objectIds, { groupId });
+}
+
+function groupSelected() {
+  const selectedIds = selection.getSelectedIds();
+
+  if (selectedIds.length < 2) {
+    status.textContent = 'Select at least 2 objects to group';
+    return;
+  }
+
+  history.record();
+  const group = createGroup(selectedIds);
+
+  if (!group) {
+    status.textContent = 'Select at least 2 objects to group';
+    return;
+  }
+
+  selectGroup(group.id);
+  layersPanel.update();
+  status.textContent = `Created ${group.name}`;
+}
+
+function ungroupSelected() {
+  if (!selectedGroupId) {
+    status.textContent = 'Select a group to ungroup';
+    return;
+  }
+
+  history.record();
+  const group = removeGroup(selectedGroupId);
+  selectedGroupId = null;
+  layersPanel.update();
+  status.textContent = group ? `Ungrouped ${group.name}` : 'Group not found';
 }
 
 function deleteSelected() {
@@ -141,6 +224,13 @@ function deleteSelected() {
 
   if (selectedIds.length === 0) {
     return;
+  }
+
+  history.record();
+
+  if (selectedGroupId) {
+    removeGroup(selectedGroupId);
+    selectedGroupId = null;
   }
 
   for (const id of selectedIds) {
@@ -158,6 +248,7 @@ function duplicateSelected() {
     return;
   }
 
+  history.record();
   const copy = duplicateObject(selectedObjectId, {
     x: 1,
     z: 1,
@@ -196,6 +287,7 @@ function spawnObject(type, position = null) {
   }
 
   const spawnPosition = position ?? dragging?.getLastGroundHit() ?? { x: 0, y: 0, z: 0 };
+  history.record();
   const object = addObject(type, {
     x: snapToGrid(spawnPosition.x),
     y: spawnPosition.y ?? 0,
@@ -278,6 +370,7 @@ dragging = createDragging({
   getSelectedId: () => selectedObjectId,
   getObjectById,
   snapToGrid,
+  onBeforeChange: () => history.record(),
   updateProperties: () => propertiesPanel.update(),
   hideContextMenu: () => {},
   setStatus: (message) => {
@@ -294,6 +387,8 @@ dragging = createDragging({
 });
 
 createToolbar({
+  beforeReset: () => history.record(),
+  beforeLoad: () => history.record(),
   afterReset: () => {
     selectObject(null);
     renderObjects();
@@ -328,6 +423,14 @@ createShortcuts({
   },
   deleteSelected,
   duplicateSelected,
+  groupSelected,
+  ungroupSelected,
+  undo: () => {
+    status.textContent = history.undo() ? 'Undo' : 'Nothing to undo';
+  },
+  redo: () => {
+    status.textContent = history.redo() ? 'Redo' : 'Nothing to redo';
+  },
 });
 
 propertiesPanel.update();

@@ -5,9 +5,11 @@ export const state = {
     units: 'm',
   },
   objects: [],
+  groups: [],
 };
 
 let nextObjectId = 1;
+let nextGroupId = 1;
 
 export function addObject(type, position = { x: 0, y: 0, z: 0 }) {
   const object = {
@@ -34,6 +36,12 @@ export function removeObject(id) {
   }
 
   const [removedObject] = state.objects.splice(index, 1);
+
+  for (const group of state.groups) {
+    group.objectIds = group.objectIds.filter((objectId) => objectId !== id);
+  }
+
+  state.groups = state.groups.filter((group) => group.objectIds.length > 0);
   return removedObject;
 }
 
@@ -53,6 +61,38 @@ export function duplicateObject(id, offset = { x: 1, z: 1 }) {
   return copy;
 }
 
+export function createGroup(objectIds, name = null) {
+  const uniqueObjectIds = [...new Set(objectIds)].filter((id) => getObjectById(id));
+
+  if (uniqueObjectIds.length < 2) {
+    return null;
+  }
+
+  const group = {
+    id: `group_${nextGroupId++}`,
+    name: name ?? `Group ${nextGroupId - 1}`,
+    objectIds: uniqueObjectIds,
+  };
+
+  state.groups.push(group);
+  return group;
+}
+
+export function getGroupById(id) {
+  return state.groups.find((group) => group.id === id) ?? null;
+}
+
+export function removeGroup(id) {
+  const index = state.groups.findIndex((group) => group.id === id);
+
+  if (index === -1) {
+    return null;
+  }
+
+  const [removedGroup] = state.groups.splice(index, 1);
+  return removedGroup;
+}
+
 export function serializeState() {
   return JSON.stringify(state, null, 2);
 }
@@ -68,7 +108,9 @@ export function loadState(snapshot) {
     units: snapshot.scene?.units || 'm',
   };
   state.objects.splice(0, state.objects.length, ...snapshot.objects.map(normalizeObject));
+  state.groups.splice(0, state.groups.length, ...(snapshot.groups ?? []).map(normalizeGroup).filter(Boolean));
   nextObjectId = getNextObjectId();
+  nextGroupId = getNextGroupId();
 }
 
 export function resetState() {
@@ -78,7 +120,9 @@ export function resetState() {
     units: 'm',
   };
   state.objects.splice(0, state.objects.length);
+  state.groups.splice(0, state.groups.length);
   nextObjectId = 1;
+  nextGroupId = 1;
 }
 
 function normalizeObject(object) {
@@ -104,9 +148,34 @@ function normalizeObject(object) {
   };
 }
 
+function normalizeGroup(group) {
+  const objectIds = Array.isArray(group.objectIds)
+    ? [...new Set(group.objectIds.map(String))].filter((id) => getObjectById(id))
+    : [];
+
+  if (objectIds.length === 0) {
+    return null;
+  }
+
+  return {
+    id: String(group.id || `group_${nextGroupId++}`),
+    name: String(group.name || group.id || `Group ${nextGroupId}`),
+    objectIds,
+  };
+}
+
 function getNextObjectId() {
   const highestId = state.objects.reduce((highest, object) => {
     const match = /^obj_(\d+)$/.exec(object.id);
+    return match ? Math.max(highest, Number(match[1])) : highest;
+  }, 0);
+
+  return highestId + 1;
+}
+
+function getNextGroupId() {
+  const highestId = state.groups.reduce((highest, group) => {
+    const match = /^group_(\d+)$/.exec(group.id);
     return match ? Math.max(highest, Number(match[1])) : highest;
   }, 0);
 

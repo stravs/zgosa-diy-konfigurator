@@ -5,6 +5,10 @@ export function createShortcuts({
   activateMeasureTool,
   deleteSelected,
   duplicateSelected,
+  groupSelected,
+  ungroupSelected,
+  undo,
+  redo,
 }) {
   window.addEventListener('keydown', (event) => {
     const target = event.target;
@@ -15,7 +19,24 @@ export function createShortcuts({
       return;
     }
 
-    if (event.key === 'Escape') {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+      event.preventDefault();
+
+      if (event.shiftKey) {
+        redo();
+      } else {
+        undo();
+      }
+    } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') {
+      event.preventDefault();
+      redo();
+    } else if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 'g') {
+      event.preventDefault();
+      ungroupSelected();
+    } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'g') {
+      event.preventDefault();
+      groupSelected();
+    } else if (event.key === 'Escape') {
       unselect();
     } else if (event.code === 'Space') {
       event.preventDefault();

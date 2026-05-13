@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { catalog } from '../catalog/index.js';
 
-export function createPropertiesPanel({ getObject, snapToGrid, onChange }) {
+export function createPropertiesPanel({ getObject, snapToGrid, onBeforeChange, onChange }) {
   const noSelection = document.getElementById('no-selection');
   const propertiesForm = document.getElementById('properties-form');
   const propType = document.getElementById('prop-type');
@@ -100,6 +100,8 @@ export function createPropertiesPanel({ getObject, snapToGrid, onChange }) {
     if (!object || !Number.isFinite(value)) {
       return;
     }
+
+    onBeforeChange?.();
 
     if (input.dataset.prop === 'position.x') {
       object.position.x = snapToGrid(value);
