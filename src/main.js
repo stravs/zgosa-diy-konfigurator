@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { catalog } from './catalog/index.js';
+import { createRaycaster } from './core/raycast.js';
 import { createScene } from './core/scene.js';
+import { createDragging } from './editor/dragging.js';
 import { createObjectRenderer } from './editor/objectRenderer.js';
 import { createSelection } from './editor/selection.js';
 import { createContextMenu } from './ui/contextMenu.js';
@@ -43,22 +45,11 @@ controls.mouseButtons = {
   RIGHT: null,
 };
 
-const marker = new THREE.Mesh(
-  new THREE.CylinderGeometry(0.18, 0.18, 0.05, 24),
-  new THREE.MeshStandardMaterial({ color: 0xf97316 })
-);
-marker.position.y = 0.025;
-marker.visible = false;
-scene.add(marker);
-
-const raycaster = new THREE.Raycaster();
-const pointer = new THREE.Vector2();
+const raycast = createRaycaster({ renderer, camera, ground, objectLayer });
 const objectRenderer = createObjectRenderer(objectLayer);
 const { objectMeshes } = objectRenderer;
-let lastGroundHit = { x: 0, y: 0, z: 0 };
 let selectedObjectId = null;
-let isDraggingObject = false;
-let dragOffset = { x: 0, z: 0 };
+let contextMenuController = null;
 
 const propertiesPanel = createPropertiesPanel({
   getObject: () => selectedObjectId ? getObjectById(selectedObjectId) : null,
@@ -102,8 +93,7 @@ function selectObject(objectId) {
   if (objectId) {
     status.textContent = `Selected ${objectId}`;
   } else {
-    isDraggingObject = false;
-    controls.enabled = true;
+    dragging.stopDragging();
     status.textContent = 'No selection';
   }
 }
@@ -157,7 +147,7 @@ function duplicateSelected() {
   status.textContent = `Duplicated ${copy.id}`;
 }
 
-function spawnObject(type, position = lastGroundHit) {
+function spawnObject(type, position = dragging.getLastGroundHit()) {
   if (!catalog[type]) {
     console.warn(`Unknown object type: ${type}`);
     return;
@@ -174,24 +164,28 @@ function spawnObject(type, position = lastGroundHit) {
   status.textContent = `Added ${catalog[type].label}`;
 }
 
-function updateRaycaster(event) {
-  const rect = renderer.domElement.getBoundingClientRect();
-  pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-  pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-  raycaster.setFromCamera(pointer, camera);
-}
-
-function getGroundHit(event) {
-  updateRaycaster(event);
-  const [hit] = raycaster.intersectObject(ground);
-  return hit ?? null;
-}
-
-const contextMenuController = createContextMenu({
+const dragging = createDragging({
+  scene,
   renderer,
-  getGroundHit,
+  raycast,
+  controls,
+  selection,
+  selectObject,
+  getSelectedId: () => selectedObjectId,
+  getObjectById,
+  snapToGrid,
+  updateProperties: () => propertiesPanel.update(),
+  hideContextMenu: () => contextMenuController?.hide(),
+  setStatus: (message) => {
+    status.textContent = message;
+  },
+});
+
+contextMenuController = createContextMenu({
+  renderer,
+  getGroundHit: raycast.getGroundHit,
   spawnObject,
-  getLastGroundHit: () => lastGroundHit,
+  getLastGroundHit: dragging.getLastGroundHit,
 });
 
 createToolbar({
@@ -209,112 +203,6 @@ createToolbar({
     status.textContent = message;
   },
 });
-
-function updateGroundMarker(hit) {
-  if (!hit) {
-    marker.visible = false;
-    status.textContent = 'Ground hit: —';
-    return;
-  }
-
-  lastGroundHit = {
-    x: hit.point.x,
-    y: 0,
-    z: hit.point.z,
-  };
-
-  const snappedX = snapToGrid(hit.point.x);
-  const snappedZ = snapToGrid(hit.point.z);
-  marker.visible = true;
-  marker.position.set(snappedX, 0.025, snappedZ);
-
-  if (!selectedObjectId) {
-    status.textContent = `Ground hit: x ${snappedX.toFixed(2)}, z ${snappedZ.toFixed(2)}`;
-  }
-}
-
-function updatePointer(event) {
-  const hit = getGroundHit(event);
-  updateGroundMarker(hit);
-
-  const selectedMesh = selection.getSelectedMesh();
-
-  if (!isDraggingObject || !selectedObjectId || !selectedMesh || !hit) {
-    return;
-  }
-
-  const object = getObjectById(selectedObjectId);
-
-  if (!object) {
-    return;
-  }
-
-  const nextX = snapToGrid(hit.point.x + dragOffset.x);
-  const nextZ = snapToGrid(hit.point.z + dragOffset.z);
-
-  object.position.x = nextX;
-  object.position.z = nextZ;
-  selectedMesh.position.set(nextX, object.position.y, nextZ);
-  selection.updateSelectedMeshBounds();
-  propertiesPanel.update();
-  status.textContent = `Moving ${object.id}: x ${nextX.toFixed(2)}, z ${nextZ.toFixed(2)}`;
-}
-
-function getObjectHit(event) {
-  updateRaycaster(event);
-  const hits = raycaster.intersectObjects(objectLayer.children, true);
-  return hits.find((hit) => hit.object.userData.objectId) ?? null;
-}
-
-function onPointerDown(event) {
-  contextMenuController.hide();
-
-  if (event.button !== 0) {
-    return;
-  }
-
-  if (selection.isUsingTransformControls()) {
-    return;
-  }
-
-  const objectHit = getObjectHit(event);
-
-  if (!objectHit) {
-    selectObject(null);
-    return;
-  }
-
-  const objectId = objectHit.object.userData.objectId;
-  const object = getObjectById(objectId);
-  const groundHit = getGroundHit(event);
-
-  if (!object || !groundHit) {
-    return;
-  }
-
-  event.preventDefault();
-  selectObject(objectId);
-  controls.enabled = false;
-  isDraggingObject = true;
-  dragOffset = {
-    x: object.position.x - groundHit.point.x,
-    z: object.position.z - groundHit.point.z,
-  };
-}
-
-function onPointerUp() {
-  if (!isDraggingObject) {
-    return;
-  }
-
-  isDraggingObject = false;
-  controls.enabled = true;
-}
-
-renderer.domElement.addEventListener('pointermove', updatePointer);
-renderer.domElement.addEventListener('pointerdown', onPointerDown, { capture: true });
-window.addEventListener('pointerup', onPointerUp);
-
 document.querySelectorAll('[data-add-object]').forEach((button) => {
   button.addEventListener('click', () => {
     spawnObject(button.dataset.addObject);
