@@ -4,6 +4,7 @@ import { catalog, createObjectMesh } from './catalog/index.js';
 import { createRaycaster } from './core/raycast.js';
 import { createScene } from './core/scene.js';
 import { createDragging } from './editor/dragging.js';
+import { createMeasureTool } from './editor/measureTool.js';
 import { createObjectRenderer } from './editor/objectRenderer.js';
 import { createSelection } from './editor/selection.js';
 import { createShortcuts } from './editor/shortcuts.js';
@@ -67,6 +68,15 @@ function snapToGrid(value) {
   return Math.round(value / gridSize) * gridSize;
 }
 
+const measureTool = createMeasureTool({
+  scene,
+  renderer,
+  raycast,
+  setStatus: (message) => {
+    status.textContent = message;
+  },
+});
+
 const selection = createSelection({
   scene,
   camera,
@@ -87,6 +97,7 @@ function renderObjects() {
 }
 
 function selectObject(objectId) {
+  measureTool.clear();
   selectedObjectId = objectId;
   selection.select(objectId);
   propertiesPanel.update();
@@ -242,7 +253,13 @@ dragging = createDragging({
     status.textContent = message;
   },
   onGroundMove: updatePlacementPreview,
-  onPrimaryClick: placePendingObject,
+  onPrimaryClick: (hit) => {
+    if (measureTool.isActive()) {
+      return true;
+    }
+
+    return placePendingObject(hit);
+  },
 });
 
 createToolbar({
@@ -272,6 +289,10 @@ createShortcuts({
   unselect: () => selectObject(null),
   setMoveTool: () => selection.setTransformMode('translate'),
   setRotateTool: () => selection.setTransformMode('rotate'),
+  activateMeasureTool: () => {
+    selectObject(null);
+    measureTool.activate();
+  },
   deleteSelected,
   duplicateSelected,
 });
