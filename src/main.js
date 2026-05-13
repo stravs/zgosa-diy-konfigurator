@@ -20,6 +20,7 @@ import {
   getObjectById,
   removeGroup,
   removeObject,
+  renameGroup as renameGroupState,
   state,
 } from './state/store.js';
 
@@ -75,6 +76,7 @@ const history = createHistory({
 const layersPanel = createLayersPanel({
   selectObject,
   selectGroup,
+  renameGroup,
 });
 
 const propertiesPanel = createPropertiesPanel({
@@ -204,6 +206,19 @@ function groupSelected() {
   selectGroup(group.id);
   layersPanel.update();
   status.textContent = `Created ${group.name}`;
+}
+
+function renameGroup(groupId, name) {
+  history.record();
+  const group = renameGroupState(groupId, name);
+
+  if (!group) {
+    status.textContent = 'Could not rename group';
+    return;
+  }
+
+  layersPanel.update();
+  status.textContent = `Renamed group: ${group.name}`;
 }
 
 function ungroupSelected() {

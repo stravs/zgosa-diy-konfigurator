@@ -93,6 +93,18 @@ export function removeGroup(id) {
   return removedGroup;
 }
 
+export function renameGroup(id, name) {
+  const group = getGroupById(id);
+  const trimmedName = String(name || '').trim();
+
+  if (!group || !trimmedName) {
+    return null;
+  }
+
+  group.name = trimmedName;
+  return group;
+}
+
 export function serializeState() {
   return JSON.stringify(state, null, 2);
 }

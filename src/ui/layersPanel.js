@@ -1,7 +1,7 @@
 import { catalog } from '../catalog/index.js';
 import { state } from '../state/store.js';
 
-export function createLayersPanel({ selectObject, selectGroup }) {
+export function createLayersPanel({ selectObject, selectGroup, renameGroup }) {
   const layersList = document.getElementById('layers-list');
   const collapsedGroupIds = new Set();
 
@@ -14,6 +14,44 @@ export function createLayersPanel({ selectObject, selectGroup }) {
       selectObject(object.id, { skipGroupSelect: true });
     });
     return button;
+  }
+
+  function createGroupSummary(group, details) {
+    const summary = document.createElement('summary');
+    summary.className = 'layer-group-summary';
+
+    const name = document.createElement('span');
+    name.textContent = `${group.name} · ${group.objectIds.length} objects`;
+
+    const renameButton = document.createElement('button');
+    renameButton.type = 'button';
+    renameButton.className = 'layer-rename-button';
+    renameButton.textContent = 'Rename';
+    renameButton.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const nextName = window.prompt('Group name', group.name);
+
+      if (nextName !== null) {
+        renameGroup(group.id, nextName);
+      }
+    });
+
+    summary.append(name, renameButton);
+    summary.addEventListener('click', (event) => {
+      event.preventDefault();
+
+      if (details.open) {
+        collapsedGroupIds.add(group.id);
+      } else {
+        collapsedGroupIds.delete(group.id);
+      }
+
+      selectGroup(group.id);
+    });
+
+    return summary;
   }
 
   function update() {
@@ -31,21 +69,7 @@ export function createLayersPanel({ selectObject, selectGroup }) {
       const details = document.createElement('details');
       details.className = 'layer-group';
       details.open = !collapsedGroupIds.has(group.id);
-
-      const summary = document.createElement('summary');
-      summary.textContent = `${group.name} · ${group.objectIds.length} objects`;
-      summary.addEventListener('click', (event) => {
-        event.preventDefault();
-
-        if (details.open) {
-          collapsedGroupIds.add(group.id);
-        } else {
-          collapsedGroupIds.delete(group.id);
-        }
-
-        selectGroup(group.id);
-      });
-      details.appendChild(summary);
+      details.appendChild(createGroupSummary(group, details));
 
       for (const objectId of group.objectIds) {
         const object = state.objects.find((item) => item.id === objectId);

@@ -4,7 +4,7 @@ export function createScene(app) {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(app.clientWidth, app.clientHeight);
-  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.enabled = false;
   app.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
@@ -19,12 +19,6 @@ export function createScene(app) {
 
   const sunLight = new THREE.DirectionalLight(0xffffff, 2.2);
   sunLight.position.set(10, 18, 8);
-  sunLight.castShadow = true;
-  sunLight.shadow.mapSize.set(2048, 2048);
-  sunLight.shadow.camera.left = -25;
-  sunLight.shadow.camera.right = 25;
-  sunLight.shadow.camera.top = 25;
-  sunLight.shadow.camera.bottom = -25;
   scene.add(sunLight);
 
   const grid = new THREE.GridHelper(100, 100, 0x94a3b8, 0x475569);
@@ -39,7 +33,7 @@ export function createScene(app) {
   });
   const ground = new THREE.Mesh(groundGeometry, groundMaterial);
   ground.rotation.x = -Math.PI / 2;
-  ground.receiveShadow = true;
+  ground.receiveShadow = false;
   ground.name = 'ground';
   scene.add(ground);
 
