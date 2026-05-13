@@ -23,6 +23,7 @@ export function createScene(app) {
 
   const grid = new THREE.GridHelper(100, 100, 0x94a3b8, 0x475569);
   grid.position.y = 0.001;
+  grid.visible = false;
   scene.add(grid);
 
   const groundGeometry = new THREE.PlaneGeometry(100, 100);
@@ -38,6 +39,7 @@ export function createScene(app) {
   scene.add(ground);
 
   const axes = new THREE.AxesHelper(2);
+  axes.visible = false;
   scene.add(axes);
 
   const objectLayer = new THREE.Group();

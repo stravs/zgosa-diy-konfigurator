@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { catalog, createObjectMesh } from './catalog/index.js';
+import { preventBrowserZoom } from './core/browserZoom.js';
 import { createRaycaster } from './core/raycast.js';
 import { createScene } from './core/scene.js';
 import { createDragging } from './editor/dragging.js';
@@ -24,6 +25,8 @@ import {
   renameGroup as renameGroupState,
   state,
 } from './state/store.js';
+
+preventBrowserZoom();
 
 const app = document.getElementById('app');
 const status = document.getElementById('status');
@@ -63,6 +66,9 @@ renderer.domElement.addEventListener('contextmenu', (event) => {
   event.preventDefault();
 });
 
+toggleGridInput.checked = false;
+grid.visible = false;
+
 const raycast = createRaycaster({ renderer, camera, ground, objectLayer });
 const objectRenderer = createObjectRenderer(objectLayer);
 const { objectMeshes } = objectRenderer;
@@ -86,10 +92,20 @@ const history = createHistory({
   },
 });
 
+function isBaseObject(objectId) {
+  return initialObjectIds.has(objectId);
+}
+
+function isBaseGroup(groupId) {
+  return initialGroupIds.has(groupId);
+}
+
 const layersPanel = createLayersPanel({
   selectObject,
   selectGroup,
   renameGroup,
+  shouldShowObject: (object) => !isBaseObject(object.id),
+  shouldShowGroup: (group) => !isBaseGroup(group.id),
 });
 
 const propertiesPanel = createPropertiesPanel({
@@ -163,6 +179,10 @@ function getGroupForObject(objectId) {
 function selectObject(objectId, options = {}) {
   measureTool.clear();
 
+  if (objectId && isBaseObject(objectId)) {
+    return;
+  }
+
   const group = objectId && !options.editGroupItem && !options.skipGroupSelect
     ? getGroupForObject(objectId)
     : null;
@@ -185,8 +205,9 @@ function selectObject(objectId, options = {}) {
 
 function selectObjects(objectIds, options = {}) {
   measureTool.clear();
+  const editableObjectIds = objectIds.filter((objectId) => !isBaseObject(objectId));
   selectedGroupId = options.groupId ?? null;
-  selection.selectMany(objectIds);
+  selection.selectMany(editableObjectIds);
   showSelectionStatus(selection.getSelectedIds());
 }
 
@@ -194,6 +215,10 @@ function selectGroup(groupId) {
   const group = getGroupById(groupId);
 
   if (!group) {
+    return;
+  }
+
+  if (isBaseGroup(groupId)) {
     return;
   }
 
@@ -418,6 +443,7 @@ dragging = createDragging({
   controls,
   selection,
   objectMeshes,
+  isObjectLocked: isBaseObject,
   selectObject,
   selectObjects,
   getSelectedId: () => selectedObjectId,

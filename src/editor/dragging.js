@@ -8,6 +8,7 @@ export function createDragging({
   controls,
   selection,
   objectMeshes,
+  isObjectLocked = () => false,
   selectObject,
   selectObjects,
   getSelectedId,
@@ -102,7 +103,7 @@ export function createDragging({
         y: rect.top + ((-projected.y + 1) / 2) * rect.height,
       };
 
-      if (isPointInMarquee(point)) {
+      if (!isObjectLocked(id) && isPointInMarquee(point)) {
         ids.push(id);
       }
     }
@@ -173,6 +174,11 @@ export function createDragging({
     }
 
     const objectId = objectHit.object.userData.objectId;
+
+    if (isObjectLocked(objectId)) {
+      return;
+    }
+
     const object = getObjectById(objectId);
 
     if (!object || !groundHit) {
@@ -209,7 +215,13 @@ export function createDragging({
 
     event.preventDefault();
     event.stopPropagation();
-    selectObject(objectHit.object.userData.objectId, { editGroupItem: true });
+    const objectId = objectHit.object.userData.objectId;
+
+    if (isObjectLocked(objectId)) {
+      return;
+    }
+
+    selectObject(objectId, { editGroupItem: true });
   }
 
   function onPointerUp() {

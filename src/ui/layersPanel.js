@@ -1,7 +1,7 @@
 import { catalog } from '../catalog/index.js';
 import { state } from '../state/store.js';
 
-export function createLayersPanel({ selectObject, selectGroup, renameGroup }) {
+export function createLayersPanel({ selectObject, selectGroup, renameGroup, shouldShowObject = () => true, shouldShowGroup = () => true }) {
   const layersList = document.getElementById('layers-list');
   const collapsedGroupIds = new Set();
 
@@ -57,7 +57,10 @@ export function createLayersPanel({ selectObject, selectGroup, renameGroup }) {
   function update() {
     layersList.replaceChildren();
 
-    if (state.objects.length === 0) {
+    const visibleObjects = state.objects.filter(shouldShowObject);
+    const visibleGroups = state.groups.filter(shouldShowGroup);
+
+    if (visibleObjects.length === 0 && visibleGroups.length === 0) {
       const empty = document.createElement('p');
       empty.className = 'layers-empty';
       empty.textContent = 'No objects in scene.';
@@ -65,7 +68,7 @@ export function createLayersPanel({ selectObject, selectGroup, renameGroup }) {
       return;
     }
 
-    for (const group of state.groups) {
+    for (const group of visibleGroups) {
       const details = document.createElement('details');
       details.className = 'layer-group';
       details.open = !collapsedGroupIds.has(group.id);
@@ -74,7 +77,7 @@ export function createLayersPanel({ selectObject, selectGroup, renameGroup }) {
       for (const objectId of group.objectIds) {
         const object = state.objects.find((item) => item.id === objectId);
 
-        if (object) {
+        if (object && shouldShowObject(object)) {
           details.appendChild(createObjectButton(object));
         }
       }
@@ -82,7 +85,7 @@ export function createLayersPanel({ selectObject, selectGroup, renameGroup }) {
       layersList.appendChild(details);
     }
 
-    const existingGroupIds = new Set(state.groups.map((group) => group.id));
+    const existingGroupIds = new Set(visibleGroups.map((group) => group.id));
 
     for (const groupId of collapsedGroupIds) {
       if (!existingGroupIds.has(groupId)) {
@@ -90,8 +93,8 @@ export function createLayersPanel({ selectObject, selectGroup, renameGroup }) {
       }
     }
 
-    const groupedObjectIds = new Set(state.groups.flatMap((group) => group.objectIds));
-    const ungroupedObjects = state.objects.filter((object) => !groupedObjectIds.has(object.id));
+    const groupedObjectIds = new Set(visibleGroups.flatMap((group) => group.objectIds));
+    const ungroupedObjects = visibleObjects.filter((object) => !groupedObjectIds.has(object.id));
 
     for (const object of ungroupedObjects) {
       layersList.appendChild(createObjectButton(object));
