@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { catalog, createObjectMesh } from './catalog/index.js';
 import { preventBrowserZoom } from './core/browserZoom.js';
+import { disposeObject3D } from './core/dispose.js';
+import { getDevicePixelRatioCap, isMobileQuality } from './core/performance.js';
 import { createRaycaster } from './core/raycast.js';
 import { createScene } from './core/scene.js';
 import { createDragging } from './editor/dragging.js';
@@ -52,11 +54,21 @@ const {
 } = createScene(app);
 
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
+controls.enableDamping = false;
 controls.target.set(0, 0, 0);
 controls.maxPolarAngle = Math.PI * 0.48;
-controls.minDistance = 4;
+controls.minDistance = isMobileQuality() ? 1.2 : 4;
 controls.maxDistance = 80;
+controls.enablePan = true;
+controls.enableZoom = true;
+controls.screenSpacePanning = false;
+controls.panSpeed = isMobileQuality() ? 0.8 : 1;
+controls.zoomSpeed = isMobileQuality() ? 0.7 : 1;
+controls.rotateSpeed = isMobileQuality() ? 0.75 : 1;
+controls.touches = {
+  ONE: THREE.TOUCH.ROTATE,
+  TWO: THREE.TOUCH.DOLLY_PAN,
+};
 controls.mouseButtons = {
   LEFT: null,
   MIDDLE: THREE.MOUSE.ROTATE,
@@ -65,6 +77,24 @@ controls.mouseButtons = {
 renderer.domElement.addEventListener('contextmenu', (event) => {
   event.preventDefault();
 });
+
+let renderQueued = false;
+
+function renderScene() {
+  renderQueued = false;
+  renderer.render(scene, camera);
+}
+
+function requestRender() {
+  if (renderQueued) {
+    return;
+  }
+
+  renderQueued = true;
+  requestAnimationFrame(renderScene);
+}
+
+controls.addEventListener('change', requestRender);
 
 toggleGridInput.checked = false;
 grid.visible = false;
@@ -115,6 +145,7 @@ const propertiesPanel = createPropertiesPanel({
   onChange: (object) => {
     renderObjects();
     propertiesPanel.update();
+    requestRender();
     status.textContent = `Updated ${object.id}`;
   },
 });
@@ -131,6 +162,7 @@ const measureTool = createMeasureTool({
   setStatus: (message) => {
     status.textContent = message;
   },
+  requestRender,
 });
 
 const selection = createSelection({
@@ -142,9 +174,11 @@ const selection = createSelection({
   onTransformStart: () => history.record(),
   onChange: () => {
     propertiesPanel.update();
+    requestRender();
   },
   setStatus: (message) => {
     status.textContent = message;
+    requestRender();
   },
 });
 
@@ -152,12 +186,14 @@ function renderObjects() {
   objectRenderer.render();
   selection.updateHelper();
   layersPanel.update();
+  requestRender();
 }
 
 function showSelectionStatus(selectedIds) {
   selectedObjectId = selectedIds.length === 1 ? selectedIds[0] : null;
   propertiesPanel.update();
   layersPanel.update();
+  requestRender();
 
   if (selectedGroupId) {
     const group = getGroupById(selectedGroupId);
@@ -378,6 +414,7 @@ function spawnObject(type, position = null) {
 function clearPlacementPreview() {
   if (previewMesh) {
     scene.remove(previewMesh);
+    disposeObject3D(previewMesh);
     previewMesh = null;
   }
 
@@ -450,7 +487,10 @@ dragging = createDragging({
   getObjectById,
   snapToGrid,
   onBeforeChange: () => history.record(),
-  updateProperties: () => propertiesPanel.update(),
+  updateProperties: () => {
+    propertiesPanel.update();
+    requestRender();
+  },
   hideContextMenu: () => {},
   setStatus: (message) => {
     status.textContent = message;
@@ -704,15 +744,10 @@ loadInitialScene();
 function onResize() {
   camera.aspect = app.clientWidth / app.clientHeight;
   camera.updateProjectionMatrix();
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, getDevicePixelRatioCap()));
   renderer.setSize(app.clientWidth, app.clientHeight);
+  requestRender();
 }
 
 window.addEventListener('resize', onResize);
-
-function animate() {
-  controls.update();
-  renderer.render(scene, camera);
-  requestAnimationFrame(animate);
-}
-
-animate();
+requestRender();

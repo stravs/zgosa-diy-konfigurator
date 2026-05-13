@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { getQuarterPipeRun } from './quarterPipe.js';
 import { materials } from './materials.js';
+import { getCurveSegments } from '../core/performance.js';
 
 export function createCorner(object) {
   const { height } = object.params;
@@ -11,8 +12,8 @@ export function createCorner(object) {
   const run = getQuarterPipeRun(height, radius);
   const safeRadius = Math.max(radius, height);
   const maxAngle = Math.acos((safeRadius - height) / safeRadius);
-  const radialSegments = 24;
-  const angleSegments = 24;
+  const radialSegments = getCurveSegments(24, 10);
+  const angleSegments = getCurveSegments(24, 12);
   const group = new THREE.Group();
 
   const geometry = new THREE.BufferGeometry();

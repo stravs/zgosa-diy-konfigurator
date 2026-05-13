@@ -1,8 +1,9 @@
 import * as THREE from 'three';
+import { getDevicePixelRatioCap } from './performance.js';
 
 export function createScene(app) {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, getDevicePixelRatioCap()));
   renderer.setSize(app.clientWidth, app.clientHeight);
   renderer.shadowMap.enabled = false;
   app.appendChild(renderer.domElement);

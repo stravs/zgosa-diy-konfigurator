@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-export function createMeasureTool({ scene, renderer, raycast, setStatus }) {
+export function createMeasureTool({ scene, renderer, raycast, setStatus, requestRender }) {
   const points = [];
   const geometry = new THREE.BufferGeometry();
   const material = new THREE.LineBasicMaterial({ color: 0x00ff66 });
@@ -41,6 +41,7 @@ export function createMeasureTool({ scene, renderer, raycast, setStatus }) {
       new THREE.Vector3(end.x, end.y + 0.05, end.z),
     ]);
     line.visible = true;
+    requestRender?.();
     startMarker.visible = true;
     endMarker.visible = true;
     startMarker.position.set(start.x, start.y + 0.08, start.z);
@@ -61,6 +62,7 @@ export function createMeasureTool({ scene, renderer, raycast, setStatus }) {
     tooltip.hidden = false;
     tooltip.textContent = 'Click first point';
     setStatus('Measure: click first point');
+    requestRender?.();
   }
 
   function clear() {
@@ -71,6 +73,7 @@ export function createMeasureTool({ scene, renderer, raycast, setStatus }) {
     startMarker.visible = false;
     endMarker.visible = false;
     tooltip.hidden = true;
+    requestRender?.();
   }
 
   function onPointerMove(event) {
@@ -118,6 +121,7 @@ export function createMeasureTool({ scene, renderer, raycast, setStatus }) {
       startMarker.position.set(hit.point.x, hit.point.y + 0.08, hit.point.z);
       setTooltip(event, 'Click second point');
       setStatus('Measure: click second point');
+      requestRender?.();
       return;
     }
 

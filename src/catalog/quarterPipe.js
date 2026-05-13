@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { materials } from './materials.js';
+import { getCurveSegments } from '../core/performance.js';
 
 export function getQuarterPipeRun(height, radius) {
   const safeRadius = Math.max(radius, height);
@@ -13,7 +14,7 @@ export function createQuarterPipeMesh(params) {
   const run = getQuarterPipeRun(height, safeRadius);
   const maxAngle = Math.acos((safeRadius - height) / safeRadius);
   const shape = new THREE.Shape();
-  const segments = 24;
+  const segments = getCurveSegments(24, 10);
 
   // Solid quarter pipe profile.
   // Editable values: width, height, radius.

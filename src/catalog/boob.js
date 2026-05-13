@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { getQuarterPipeRun } from './quarterPipe.js';
 import { materials } from './materials.js';
+import { getCurveSegments } from '../core/performance.js';
 
 function transitionHeight(distance, radius) {
   const d = THREE.MathUtils.clamp(distance, 0, radius);
@@ -31,8 +32,8 @@ export function createBoob(object) {
   const transitionSlope = getTransitionSlope(run, safeRadius);
   const domeBaseRadius = getDomeBaseRadius(capHeight, transitionSlope);
   const totalRadius = run + domeBaseRadius;
-  const radialSegments = 40;
-  const angleSegments = 80;
+  const radialSegments = getCurveSegments(40, 14);
+  const angleSegments = getCurveSegments(80, 32);
 
   const geometry = new THREE.BufferGeometry();
   const vertices = [];

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { getQuarterPipeRun } from './quarterPipe.js';
 import { materials } from './materials.js';
+import { getCurveSegments } from '../core/performance.js';
 
 function transitionHeight(distance, radius, run) {
   const d = THREE.MathUtils.clamp(distance, 0, run);
@@ -16,8 +17,9 @@ export function createVolcanoMesh(params) {
   const isFullCircle = Math.abs(degrees - 360) < 0.0001;
   const safeRadius = Math.max(radius, height);
   const run = getQuarterPipeRun(height, safeRadius);
-  const radialSegments = 24;
-  const angleSegments = isFullCircle ? 64 : Math.max(2, Math.ceil(64 * (degrees / 360)));
+  const radialSegments = getCurveSegments(24, 10);
+  const maxAngleSegments = getCurveSegments(64, 28);
+  const angleSegments = isFullCircle ? maxAngleSegments : Math.max(2, Math.ceil(maxAngleSegments * (degrees / 360)));
 
   const geometry = new THREE.BufferGeometry();
   const vertices = [];
