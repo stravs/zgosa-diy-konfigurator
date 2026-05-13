@@ -29,18 +29,35 @@
       <div class="workspace">
         <aside class="left-panel">
           <h2>Objects</h2>
-          <button data-add-object="box">Box</button>
-          <button data-add-object="ledge">Ledge</button>
-          <button data-add-object="quarterPipe">Quarter Pipe</button>
-          <button data-add-object="halfPipe">Half Pipe</button>
-          <button data-add-object="corner">Corner</button>
-          <button data-add-object="hip">Hip</button>
-          <button data-add-object="volcano">Volcano</button>
-          <button data-add-object="bank">Bank</button>
-          <button data-add-object="pyramid">Pyramid</button>
-          <button data-add-object="rail">Rail</button>
-          <button data-add-object="stairs">Stairs</button>
-          <button data-add-object="skater">Skater</button>
+
+          <details class="object-folder" open>
+            <summary>Flat</summary>
+            <button data-add-object="box">Box</button>
+            <button data-add-object="bank">Bank</button>
+            <button data-add-object="pyramid">Pyramid</button>
+            <button data-add-object="stairs">Stairs</button>
+          </details>
+
+          <details class="object-folder" open>
+            <summary>Curved</summary>
+            <button data-add-object="quarterPipe">Quarter Pipe</button>
+            <button data-add-object="halfPipe">Half Pipe</button>
+            <button data-add-object="corner">Corner</button>
+            <button data-add-object="hip">Hip</button>
+            <button data-add-object="volcano">Volcano</button>
+            <button data-add-object="boob">Boob</button>
+          </details>
+
+          <details class="object-folder" open>
+            <summary>Slide</summary>
+            <button data-add-object="rail">Rail</button>
+            <button data-add-object="ledge">Ledge</button>
+          </details>
+
+          <details class="object-folder" open>
+            <summary>Other</summary>
+            <button data-add-object="skater">Skater</button>
+          </details>
         </aside>
         <main id="app"></main>
         <aside class="right-panel">
@@ -130,6 +147,7 @@
       <button data-context-add="corner" type="button">Add Corner</button>
       <button data-context-add="hip" type="button">Add Hip</button>
       <button data-context-add="volcano" type="button">Add Volcano</button>
+      <button data-context-add="boob" type="button">Add Boob</button>
       <button data-context-add="bank" type="button">Add Bank</button>
       <button data-context-add="pyramid" type="button">Add Pyramid</button>
       <button data-context-add="rail" type="button">Add Rail</button>

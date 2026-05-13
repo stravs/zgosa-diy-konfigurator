@@ -160,6 +160,7 @@ function getPreviewParams(type) {
   if (type === 'corner') return { width: 2.4, height: 1.2, radius: 2.0, deckDepth: 0.8, degrees: 90 };
   if (type === 'hip') return { height: 1.2, radius: 2.0, degrees: 90 };
   if (type === 'volcano') return { height: 1.2, radius: 2.0, topRadius: 0.6 };
+  if (type === 'boob') return { height: 0.8, radius: 1.8 };
   if (type === 'bank') return { width: 2.4, height: 0.8, length: 2.4 };
   if (type === 'pyramid') return { height: 0.8, length: 2.0, topSize: 1.2 };
   if (type === 'rail') return { height: 0.7, length: 3.0, railRadius: 0.05 };

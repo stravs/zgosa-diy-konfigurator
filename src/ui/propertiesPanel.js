@@ -47,7 +47,7 @@ export function createPropertiesPanel({ getObject, snapToGrid, onChange }) {
 
     const showWidth = ['box', 'ledge', 'quarterPipe', 'halfPipe', 'stairs'].includes(object.type);
     const showDepth = ['box', 'ledge'].includes(object.type);
-    const showRadius = ['quarterPipe', 'halfPipe', 'corner', 'hip', 'volcano'].includes(object.type);
+    const showRadius = ['quarterPipe', 'halfPipe', 'corner', 'hip', 'volcano', 'boob'].includes(object.type);
     const showLength = ['bank', 'pyramid', 'rail'].includes(object.type);
 
     propWidthRow.hidden = !showWidth;

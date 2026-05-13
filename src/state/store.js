@@ -162,5 +162,9 @@ export function getDefaultParams(type) {
     return { height: 1.8 };
   }
 
+  if (type === 'boob') {
+    return { height: 0.8, radius: 1.8 };
+  }
+
   throw new Error(`Unknown object type: ${type}`);
 }
