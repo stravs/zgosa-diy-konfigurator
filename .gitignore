@@ -1,0 +1,16 @@
+PLAN.md
+
+# local logs
+*.log
+
+# OS/editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# temp/build
+dist/
+build/
+.cache/
+tmp/
