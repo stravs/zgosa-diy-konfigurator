@@ -45,6 +45,13 @@ export function createToolbar({ beforeReset, resetSceneState, beforeLoad, afterR
       return;
     }
 
+    if (file.size > 2_000_000) {
+      setStatus('JSON file is too large');
+      window.alert('JSON file is too large. Max size is 2 MB.');
+      loadJsonInput.value = '';
+      return;
+    }
+
     try {
       const text = await file.text();
       const snapshot = JSON.parse(text);

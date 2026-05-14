@@ -8,6 +8,31 @@ export const state = {
   groups: [],
 };
 
+const MAX_OBJECTS = 1000;
+const MAX_GROUPS = 300;
+const MAX_IDS_PER_GROUP = 300;
+const MAX_ABS_POSITION = 10000;
+const MAX_ABS_ROTATION = Math.PI * 8;
+const MAX_PARAM_VALUE = 10000;
+const MAX_ID_LENGTH = 80;
+const MAX_NAME_LENGTH = 80;
+const ALLOWED_TYPES = new Set([
+  'box',
+  'ledge',
+  'quarterPipe',
+  'halfPipe',
+  'corner',
+  'hip',
+  'volcano',
+  'bank',
+  'pyramid',
+  'flatHip',
+  'rail',
+  'stairs',
+  'skater',
+  'boob',
+]);
+
 let nextObjectId = 1;
 let nextGroupId = 1;
 
@@ -128,14 +153,22 @@ export function serializeState() {
 }
 
 export function loadState(snapshot) {
-  if (!snapshot || !Array.isArray(snapshot.objects)) {
+  if (!isPlainObject(snapshot) || !Array.isArray(snapshot.objects)) {
     throw new Error('Invalid scene JSON');
   }
 
-  state.version = Number(snapshot.version) || 1;
+  if (snapshot.objects.length > MAX_OBJECTS) {
+    throw new Error(`Too many objects. Max ${MAX_OBJECTS}.`);
+  }
+
+  if (snapshot.groups && (!Array.isArray(snapshot.groups) || snapshot.groups.length > MAX_GROUPS)) {
+    throw new Error(`Too many groups. Max ${MAX_GROUPS}.`);
+  }
+
+  state.version = sanitizeInteger(snapshot.version, 1, 1, 999);
   state.scene = {
-    gridSize: Number(snapshot.scene?.gridSize) || 0.01,
-    units: snapshot.scene?.units || 'm',
+    gridSize: sanitizeNumber(snapshot.scene?.gridSize, 0.01, 0.01, 100),
+    units: sanitizeText(snapshot.scene?.units, 'm', 12),
   };
   state.objects.splice(0, state.objects.length, ...snapshot.objects.map(normalizeObject));
   state.groups.splice(0, state.groups.length, ...(snapshot.groups ?? []).map(normalizeGroup).filter(Boolean));
@@ -156,31 +189,40 @@ export function resetState() {
 }
 
 function normalizeObject(object) {
-  const type = object.type === 'corner90' ? 'corner' : object.type;
+  if (!isPlainObject(object)) {
+    throw new Error('Invalid object in scene JSON');
+  }
+
+  const type = object.type === 'corner90' ? 'corner' : String(object.type || '');
+
+  if (!ALLOWED_TYPES.has(type)) {
+    throw new Error(`Unknown object type: ${type || 'missing'}`);
+  }
 
   return {
-    id: String(object.id || `obj_${nextObjectId++}`),
+    id: sanitizeId(object.id, `obj_${nextObjectId++}`),
     type,
     position: {
-      x: Number(object.position?.x) || 0,
-      y: Number(object.position?.y) || 0,
-      z: Number(object.position?.z) || 0,
+      x: sanitizeNumber(object.position?.x, 0, -MAX_ABS_POSITION, MAX_ABS_POSITION),
+      y: sanitizeNumber(object.position?.y, 0, -MAX_ABS_POSITION, MAX_ABS_POSITION),
+      z: sanitizeNumber(object.position?.z, 0, -MAX_ABS_POSITION, MAX_ABS_POSITION),
     },
     rotation: {
-      x: Number(object.rotation?.x) || 0,
-      y: Number(object.rotation?.y) || 0,
-      z: Number(object.rotation?.z) || 0,
+      x: sanitizeNumber(object.rotation?.x, 0, -MAX_ABS_ROTATION, MAX_ABS_ROTATION),
+      y: sanitizeNumber(object.rotation?.y, 0, -MAX_ABS_ROTATION, MAX_ABS_ROTATION),
+      z: sanitizeNumber(object.rotation?.z, 0, -MAX_ABS_ROTATION, MAX_ABS_ROTATION),
     },
-    params: {
-      ...getDefaultParams(type),
-      ...object.params,
-    },
+    params: sanitizeParams(type, object.params),
   };
 }
 
 function normalizeGroup(group) {
+  if (!isPlainObject(group)) {
+    return null;
+  }
+
   const objectIds = Array.isArray(group.objectIds)
-    ? [...new Set(group.objectIds.map(String))].filter((id) => getObjectById(id))
+    ? [...new Set(group.objectIds.slice(0, MAX_IDS_PER_GROUP).map((id) => sanitizeId(id, '')))].filter((id) => id && getObjectById(id))
     : [];
 
   if (objectIds.length === 0) {
@@ -188,10 +230,63 @@ function normalizeGroup(group) {
   }
 
   return {
-    id: String(group.id || `group_${nextGroupId++}`),
-    name: String(group.name || group.id || `Group ${nextGroupId}`),
+    id: sanitizeId(group.id, `group_${nextGroupId++}`),
+    name: sanitizeText(group.name || group.id, `Group ${nextGroupId}`, MAX_NAME_LENGTH),
     objectIds,
   };
+}
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function sanitizeNumber(value, fallback, min, max) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
+    return fallback;
+  }
+
+  return Math.min(max, Math.max(min, number));
+}
+
+function sanitizeInteger(value, fallback, min, max) {
+  return Math.round(sanitizeNumber(value, fallback, min, max));
+}
+
+function sanitizeText(value, fallback, maxLength) {
+  const text = String(value ?? fallback).replace(/[\u0000-\u001f\u007f]/g, '').trim();
+  return (text || fallback).slice(0, maxLength);
+}
+
+function sanitizeId(value, fallback) {
+  const id = sanitizeText(value, fallback, MAX_ID_LENGTH).replace(/[^a-zA-Z0-9_-]/g, '_');
+  return id || fallback;
+}
+
+function sanitizeParams(type, params) {
+  const defaults = getDefaultParams(type);
+  const sanitized = { ...defaults };
+
+  if (!isPlainObject(params)) {
+    return sanitized;
+  }
+
+  for (const key of Object.keys(defaults)) {
+    if (!(key in params)) {
+      continue;
+    }
+
+    if (key === 'stepCount') {
+      sanitized[key] = sanitizeInteger(params[key], defaults[key], 1, 100);
+    } else if (key === 'degrees') {
+      sanitized[key] = sanitizeNumber(params[key], defaults[key], 1, 360);
+    } else {
+      sanitized[key] = sanitizeNumber(params[key], defaults[key], 0, MAX_PARAM_VALUE);
+    }
+  }
+
+  return sanitized;
 }
 
 function getNextObjectId() {

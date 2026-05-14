@@ -1,20 +1,23 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { catalog, createObjectMesh } from './catalog/index.js';
+import { catalog } from './catalog/index.js';
 import { preventBrowserZoom } from './core/browserZoom.js';
-import { disposeObject3D } from './core/dispose.js';
 import { getDevicePixelRatioCap, isMobileQuality } from './core/performance.js';
 import { createRaycaster } from './core/raycast.js';
 import { createScene } from './core/scene.js';
 import { createDragging } from './editor/dragging.js';
 import { createMeasureTool } from './editor/measureTool.js';
 import { createObjectRenderer } from './editor/objectRenderer.js';
+import { createPlacementController } from './editor/placement.js';
 import { createSelection } from './editor/selection.js';
 import { createShortcuts } from './editor/shortcuts.js';
+import { createDrawers } from './ui/drawers.js';
 import { createLayersPanel } from './ui/layersPanel.js';
+import { createMobileToolbar } from './ui/mobileToolbar.js';
 import { createPropertiesPanel } from './ui/propertiesPanel.js';
 import { createPropertySheet } from './ui/propertySheet.js';
 import { createToolbar } from './ui/toolbar.js';
+import { createTopMenu } from './ui/topMenu.js';
 import { createHistory } from './state/history.js';
 import {
   addObject,
@@ -37,24 +40,6 @@ const toggleGridInput = document.getElementById('toggle-grid');
 const toggleEditBaseInput = document.getElementById('toggle-edit-base');
 const objectsHandleButton = document.getElementById('objects-handle');
 const layersHandleButton = document.getElementById('layers-handle');
-const topMenuToggleButton = document.getElementById('top-menu-toggle');
-const topMenu = document.getElementById('top-menu');
-const menuClearButton = document.getElementById('menu-clear');
-const menuSaveButton = document.getElementById('menu-save');
-const menuLoadButton = document.getElementById('menu-load');
-const menuGridInput = document.getElementById('menu-grid');
-const menuEditBaseInput = document.getElementById('menu-edit-base');
-const menuUngroupButton = document.getElementById('menu-ungroup');
-const newSceneButton = document.getElementById('new-scene');
-const saveJsonButton = document.getElementById('save-json');
-const loadJsonButton = document.getElementById('load-json');
-const mobileMoveButton = document.getElementById('mobile-move');
-const mobileRotateButton = document.getElementById('mobile-rotate');
-const mobileMeasureButton = document.getElementById('mobile-measure');
-const mobileGroupButton = document.getElementById('mobile-group');
-const mobileUndoButton = document.getElementById('mobile-undo');
-const mobileRedoButton = document.getElementById('mobile-redo');
-const mobileDeleteButton = document.getElementById('mobile-delete');
 const leftPanel = document.querySelector('.left-panel');
 const rightPanel = document.querySelector('.right-panel');
 
@@ -111,7 +96,6 @@ function requestRender() {
 controls.addEventListener('change', requestRender);
 
 toggleGridInput.checked = false;
-menuGridInput.checked = false;
 grid.visible = false;
 
 const raycast = createRaycaster({ renderer, camera, ground, objectLayer });
@@ -119,9 +103,9 @@ const objectRenderer = createObjectRenderer(objectLayer);
 const { objectMeshes } = objectRenderer;
 let selectedObjectId = null;
 let selectedGroupId = null;
-let pendingObjectType = null;
-let previewMesh = null;
 let dragging = null;
+let placement = null;
+let drawers = null;
 let initialObjectIds = new Set();
 let initialGroupIds = new Set();
 let canEditBase = false;
@@ -157,7 +141,7 @@ const layersPanel = createLayersPanel({
   selectGroup,
   renameGroup,
   openObjectProperties: (objectId) => {
-    closeLayersDrawer();
+    drawers?.closeLayersDrawer();
     propertySheet?.open(objectId);
   },
   shouldShowObject: (object) => canEditBase || !isBaseObject(object.id),
@@ -424,131 +408,22 @@ function duplicateSelected() {
   status.textContent = `Duplicated ${copy.id}`;
 }
 
-function getPreviewParams(type) {
-  if (type === 'box') return { width: 2.4, height: 0.45, depth: 1.2 };
-  if (type === 'ledge') return { width: 3.0, height: 0.35, depth: 0.6 };
-  if (type === 'quarterPipe') return { width: 2.4, height: 1.2, radius: 2.0, deckDepth: 0.8 };
-  if (type === 'halfPipe') return { width: 2.4, height: 1.2, radius: 2.0, flatLength: 1.5, deckDepth: 0.8 };
-  if (type === 'corner') return { width: 2.4, height: 1.2, radius: 2.0, deckDepth: 0.8, degrees: 90 };
-  if (type === 'hip') return { height: 1.2, radius: 2.0, degrees: 90 };
-  if (type === 'volcano') return { height: 1.2, radius: 2.0, topRadius: 0.6 };
-  if (type === 'boob') return { height: 0.8, radius: 1.8 };
-  if (type === 'bank') return { width: 2.4, height: 0.8, length: 2.4 };
-  if (type === 'pyramid') return { height: 0.8, length: 2.0, topSize: 1.2 };
-  if (type === 'flatHip') return { height: 0.8, length: 2.0, topSize: 0, degrees: 90 };
-  if (type === 'rail') return { height: 0.7, length: 3.0, railRadius: 0.05 };
-  if (type === 'stairs') return { width: 2.4, height: 0.18, stepCount: 5, treadDepth: 0.35 };
-  if (type === 'skater') return { height: 1.8 };
-  return {};
-}
-
-function getHitWorldNormal(hit) {
-  if (!hit?.face) {
-    return new THREE.Vector3(0, 1, 0);
-  }
-
-  const normal = hit.face.normal.clone();
-  const normalMatrix = new THREE.Matrix3().getNormalMatrix(hit.object.matrixWorld);
-  return normal.applyMatrix3(normalMatrix).normalize();
-}
-
-function getPlacementRotation(hit) {
-  const normal = getHitWorldNormal(hit);
-  const quaternion = new THREE.Quaternion().setFromUnitVectors(
-    new THREE.Vector3(0, 1, 0),
-    normal
-  );
-  return new THREE.Euler().setFromQuaternion(quaternion);
-}
-
-function spawnObject(type, position = null, rotation = null) {
-  if (!catalog[type]) {
-    console.warn(`Unknown object type: ${type}`);
-    return;
-  }
-
-  const spawnPosition = position ?? dragging?.getLastGroundHit() ?? { x: 0, y: 0, z: 0 };
-  history.record();
-  const object = addObject(type, {
-    x: snapToGrid(spawnPosition.x),
-    y: spawnPosition.y ?? 0,
-    z: snapToGrid(spawnPosition.z),
-  });
-
-  if (rotation) {
-    object.rotation.x = rotation.x;
-    object.rotation.y = rotation.y;
-    object.rotation.z = rotation.z;
-  }
-
-  renderObjects();
-  selectObject(object.id);
-  propertySheet.open(object.id, { isNew: true });
-  status.textContent = `Added ${catalog[type].label}`;
-}
-
-function clearPlacementPreview() {
-  if (previewMesh) {
-    scene.remove(previewMesh);
-    disposeObject3D(previewMesh);
-    previewMesh = null;
-  }
-
-  pendingObjectType = null;
-}
-
-function startPlacement(type) {
-  closeMobileDrawers();
-
-  if (!catalog[type]) {
-    console.warn(`Unknown object type: ${type}`);
-    return;
-  }
-
-  clearPlacementPreview();
-  pendingObjectType = type;
-  const previewObject = {
-    id: '__preview__',
-    type,
-    position: { x: 0, y: 0, z: 0 },
-    rotation: { x: 0, y: 0, z: 0 },
-    params: getPreviewParams(type),
-  };
-
-  previewMesh = createObjectMesh(previewObject);
-  scene.add(previewMesh);
-  selectObject(null);
-  status.textContent = `Placing ${catalog[type].label}. Left click to place.`;
-}
-
-function updatePlacementPreview(hit) {
-  if (!previewMesh || !hit) {
-    return;
-  }
-
-  previewMesh.visible = true;
-  previewMesh.position.set(
-    snapToGrid(hit.point.x),
-    hit.point.y,
-    snapToGrid(hit.point.z)
-  );
-  previewMesh.rotation.copy(getPlacementRotation(hit));
-  requestRender();
-}
-
-function placePendingObject(hit) {
-  if (!pendingObjectType || !hit) {
-    return false;
-  }
-
-  spawnObject(pendingObjectType, {
-    x: hit.point.x,
-    y: hit.point.y,
-    z: hit.point.z,
-  }, getPlacementRotation(hit));
-  clearPlacementPreview();
-  return true;
-}
+placement = createPlacementController({
+  scene,
+  catalog,
+  addObject,
+  snapToGrid,
+  history,
+  renderObjects,
+  selectObject,
+  propertySheet,
+  closeMobileDrawers: () => drawers?.closeMobileDrawers(),
+  getLastGroundHit: () => dragging?.getLastGroundHit(),
+  setStatus: (message) => {
+    status.textContent = message;
+  },
+  requestRender,
+});
 
 dragging = createDragging({
   scene,
@@ -573,15 +448,15 @@ dragging = createDragging({
   setStatus: (message) => {
     status.textContent = message;
   },
-  onGroundMove: updatePlacementPreview,
+  onGroundMove: placement.updatePlacementPreview,
   onPrimaryClick: (hit) => {
     if (measureTool.isActive()) {
       return true;
     }
 
-    return placePendingObject(hit);
+    return placement.placePendingObject(hit);
   },
-  onLongPressEmpty: openObjectsDrawer,
+  onLongPressEmpty: () => drawers?.openObjectsDrawer(),
   onLongPressObject: (objectId) => {
     selectObject(objectId, { editGroupItem: true });
     propertySheet.open(objectId);
@@ -610,9 +485,11 @@ createToolbar({
     status.textContent = message;
   },
 });
+let topMenuPanel = null;
+
 function setGridVisible(visible) {
   toggleGridInput.checked = visible;
-  menuGridInput.checked = visible;
+  topMenuPanel?.setGridChecked(visible);
   grid.visible = visible;
   requestRender();
 }
@@ -620,7 +497,7 @@ function setGridVisible(visible) {
 function setBaseEditing(enabled) {
   canEditBase = enabled;
   toggleEditBaseInput.checked = enabled;
-  menuEditBaseInput.checked = enabled;
+  topMenuPanel?.setBaseEditingChecked(enabled);
 
   if (!canEditBase && selection.getSelectedIds().some(isBaseObject)) {
     selectObject(null);
@@ -634,22 +511,14 @@ toggleGridInput.addEventListener('change', () => {
   setGridVisible(toggleGridInput.checked);
 });
 
-menuGridInput.addEventListener('change', () => {
-  setGridVisible(menuGridInput.checked);
-});
-
 toggleEditBaseInput.addEventListener('change', () => {
   setBaseEditing(toggleEditBaseInput.checked);
-});
-
-menuEditBaseInput.addEventListener('change', () => {
-  setBaseEditing(menuEditBaseInput.checked);
 });
 
 
 document.querySelectorAll('[data-add-object]').forEach((button) => {
   button.addEventListener('click', () => {
-    startPlacement(button.dataset.addObject);
+    placement.startPlacement(button.dataset.addObject);
   });
 });
 
@@ -661,196 +530,35 @@ function redoAction() {
   status.textContent = history.redo() ? 'Redo' : 'Nothing to redo';
 }
 
-function clearDrawerInlineStyles() {
-  leftPanel.style.transform = '';
-  rightPanel.style.transform = '';
-  objectsHandleButton.style.transform = '';
-  layersHandleButton.style.transform = '';
-}
-
-function closeObjectsDrawer() {
-  document.body.classList.remove('show-objects-panel');
-  leftPanel.classList.remove('drawer-open');
-  leftPanel.style.transform = '';
-  objectsHandleButton.style.transform = '';
-}
-
-function closeLayersDrawer() {
-  document.body.classList.remove('show-right-panel');
-  rightPanel.classList.remove('drawer-open');
-  rightPanel.style.transform = '';
-  layersHandleButton.style.transform = '';
-}
-
-function closeMobileDrawers() {
-  closeObjectsDrawer();
-  closeLayersDrawer();
-}
-
-function openObjectsDrawer() {
-  document.body.classList.add('show-objects-panel');
-  leftPanel.classList.add('drawer-open');
-  leftPanel.style.transform = '';
-  objectsHandleButton.style.transform = `translateY(-50%) translateX(${leftPanel.getBoundingClientRect().width}px)`;
-}
-
-function openLayersDrawer() {
-  document.body.classList.add('show-right-panel');
-  rightPanel.classList.add('drawer-open');
-  rightPanel.style.transform = '';
-  layersHandleButton.style.transform = `translateY(-50%) translateX(${-rightPanel.getBoundingClientRect().width}px)`;
-}
-
-function toggleObjectsDrawer() {
-  if (leftPanel.classList.contains('drawer-open')) {
-    closeObjectsDrawer();
-  } else {
-    openObjectsDrawer();
-  }
-}
-
-function toggleLayersDrawer() {
-  if (rightPanel.classList.contains('drawer-open')) {
-    closeLayersDrawer();
-  } else {
-    openLayersDrawer();
-  }
-}
-
-function setDrawerProgress(panel, handle, side, progress) {
-  const clampedProgress = THREE.MathUtils.clamp(progress, 0, 1);
-  const width = panel.getBoundingClientRect().width;
-
-  if (side === 'left') {
-    panel.style.transform = `translateX(${(clampedProgress - 1) * 100}%)`;
-    handle.style.transform = `translateY(-50%) translateX(${clampedProgress * width}px)`;
-  } else {
-    panel.style.transform = `translateX(${(1 - clampedProgress) * 100}%)`;
-    handle.style.transform = `translateY(-50%) translateX(${-clampedProgress * width}px)`;
-  }
-}
-
-function createDrawerHandleDrag({ handle, panel, side, open }) {
-  let startX = 0;
-  let startProgress = 0;
-  let latestProgress = 0;
-  let didDrag = false;
-
-  handle.addEventListener('pointerdown', (event) => {
-    event.preventDefault();
-    handle.setPointerCapture(event.pointerId);
-    startX = event.clientX;
-    startProgress = panel.classList.contains('drawer-open') ? 1 : 0;
-    latestProgress = startProgress;
-    didDrag = false;
-    panel.style.transition = 'none';
-    handle.style.transition = 'none';
-  });
-
-  handle.addEventListener('pointermove', (event) => {
-    if (!handle.hasPointerCapture(event.pointerId)) {
-      return;
-    }
-
-    const width = panel.getBoundingClientRect().width;
-    const delta = side === 'left' ? event.clientX - startX : startX - event.clientX;
-    latestProgress = THREE.MathUtils.clamp(startProgress + (delta / width), 0, 1);
-    didDrag = didDrag || Math.abs(delta) > 4;
-    setDrawerProgress(panel, handle, side, latestProgress);
-  });
-
-  handle.addEventListener('pointerup', (event) => {
-    if (!handle.hasPointerCapture(event.pointerId)) {
-      return;
-    }
-
-    handle.releasePointerCapture(event.pointerId);
-    panel.style.transition = '';
-    handle.style.transition = '';
-
-    if (!didDrag) {
-      open();
-      return;
-    }
-
-    if (latestProgress > 0.45) {
-      open();
-    } else if (side === 'left') {
-      closeObjectsDrawer();
-    } else {
-      closeLayersDrawer();
-    }
-  });
-}
-
-createDrawerHandleDrag({
-  handle: objectsHandleButton,
-  panel: leftPanel,
-  side: 'left',
-  open: toggleObjectsDrawer,
+drawers = createDrawers({
+  leftPanel,
+  rightPanel,
+  objectsHandleButton,
+  layersHandleButton,
 });
 
-createDrawerHandleDrag({
-  handle: layersHandleButton,
-  panel: rightPanel,
-  side: 'right',
-  open: toggleLayersDrawer,
+const {
+  closeLayersDrawer,
+  closeMobileDrawers,
+  openObjectsDrawer,
+} = drawers;
+
+topMenuPanel = createTopMenu({
+  setGridVisible,
+  setBaseEditing,
+  ungroupSelected,
 });
 
-if (isMobileQuality()) {
-  const folders = [...leftPanel.querySelectorAll('.object-folder')];
-  folders.forEach((folder, index) => {
-    folder.open = index === 0;
-  });
-} else {
-  openObjectsDrawer();
-  openLayersDrawer();
-}
-
-mobileMoveButton.addEventListener('click', () => {
-  closeMobileDrawers();
-  selection.setTransformMode('translate');
+createMobileToolbar({
+  closeMobileDrawers,
+  selection,
+  selectObject,
+  measureTool,
+  groupSelected,
+  undoAction,
+  redoAction,
+  deleteSelected,
 });
-
-mobileRotateButton.addEventListener('click', () => {
-  closeMobileDrawers();
-  selection.setTransformMode('rotate');
-});
-
-mobileMeasureButton.addEventListener('click', () => {
-  closeMobileDrawers();
-  selectObject(null);
-  measureTool.activate();
-});
-
-topMenuToggleButton.addEventListener('click', () => {
-  topMenu.hidden = !topMenu.hidden;
-});
-
-menuClearButton.addEventListener('click', () => {
-  topMenu.hidden = true;
-  newSceneButton.click();
-});
-
-menuSaveButton.addEventListener('click', () => {
-  topMenu.hidden = true;
-  saveJsonButton.click();
-});
-
-menuLoadButton.addEventListener('click', () => {
-  topMenu.hidden = true;
-  loadJsonButton.click();
-});
-
-menuUngroupButton.addEventListener('click', () => {
-  topMenu.hidden = true;
-  ungroupSelected();
-});
-
-mobileGroupButton.addEventListener('click', groupSelected);
-mobileUndoButton.addEventListener('click', undoAction);
-mobileRedoButton.addEventListener('click', redoAction);
-mobileDeleteButton.addEventListener('click', deleteSelected);
 
 createShortcuts({
   unselect: () => selectObject(null),
