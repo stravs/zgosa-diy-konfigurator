@@ -18,6 +18,7 @@
     <div class="app-shell">
       <header class="topbar">
         <h1>Zgosa DIY Konfigurator</h1>
+        <button id="top-menu-toggle" class="top-menu-toggle" type="button" aria-label="Menu">☰</button>
         <div class="topbar-actions">
           <button id="new-scene" type="button">Clear</button>
           <button id="save-json" type="button">Save</button>
@@ -33,6 +34,20 @@
           <input id="load-json-input" type="file" accept="application/json,.json" hidden />
         </div>
         <div id="status">Ground hit: —</div>
+        <div id="top-menu" class="top-menu" hidden>
+          <button id="menu-clear" type="button">Clear</button>
+          <button id="menu-save" type="button">Save</button>
+          <button id="menu-load" type="button">Load</button>
+          <label>
+            <input id="menu-grid" type="checkbox" />
+            Grid
+          </label>
+          <label>
+            <input id="menu-edit-base" type="checkbox" />
+            Edit Base
+          </label>
+          <button id="menu-ungroup" type="button">Ungroup</button>
+        </div>
       </header>
       <div class="workspace">
         <aside class="left-panel">

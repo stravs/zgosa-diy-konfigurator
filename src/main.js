@@ -37,6 +37,17 @@ const toggleGridInput = document.getElementById('toggle-grid');
 const toggleEditBaseInput = document.getElementById('toggle-edit-base');
 const objectsHandleButton = document.getElementById('objects-handle');
 const layersHandleButton = document.getElementById('layers-handle');
+const topMenuToggleButton = document.getElementById('top-menu-toggle');
+const topMenu = document.getElementById('top-menu');
+const menuClearButton = document.getElementById('menu-clear');
+const menuSaveButton = document.getElementById('menu-save');
+const menuLoadButton = document.getElementById('menu-load');
+const menuGridInput = document.getElementById('menu-grid');
+const menuEditBaseInput = document.getElementById('menu-edit-base');
+const menuUngroupButton = document.getElementById('menu-ungroup');
+const newSceneButton = document.getElementById('new-scene');
+const saveJsonButton = document.getElementById('save-json');
+const loadJsonButton = document.getElementById('load-json');
 const mobileMoveButton = document.getElementById('mobile-move');
 const mobileRotateButton = document.getElementById('mobile-rotate');
 const mobileMeasureButton = document.getElementById('mobile-measure');
@@ -100,6 +111,7 @@ function requestRender() {
 controls.addEventListener('change', requestRender);
 
 toggleGridInput.checked = false;
+menuGridInput.checked = false;
 grid.visible = false;
 
 const raycast = createRaycaster({ renderer, camera, ground, objectLayer });
@@ -570,12 +582,17 @@ createToolbar({
     status.textContent = message;
   },
 });
-toggleGridInput.addEventListener('change', () => {
-  grid.visible = toggleGridInput.checked;
-});
+function setGridVisible(visible) {
+  toggleGridInput.checked = visible;
+  menuGridInput.checked = visible;
+  grid.visible = visible;
+  requestRender();
+}
 
-toggleEditBaseInput.addEventListener('change', () => {
-  canEditBase = toggleEditBaseInput.checked;
+function setBaseEditing(enabled) {
+  canEditBase = enabled;
+  toggleEditBaseInput.checked = enabled;
+  menuEditBaseInput.checked = enabled;
 
   if (!canEditBase && selection.getSelectedIds().some(isBaseObject)) {
     selectObject(null);
@@ -583,7 +600,24 @@ toggleEditBaseInput.addEventListener('change', () => {
 
   layersPanel.update();
   status.textContent = canEditBase ? 'Base editing enabled' : 'Base editing disabled';
+}
+
+toggleGridInput.addEventListener('change', () => {
+  setGridVisible(toggleGridInput.checked);
 });
+
+menuGridInput.addEventListener('change', () => {
+  setGridVisible(menuGridInput.checked);
+});
+
+toggleEditBaseInput.addEventListener('change', () => {
+  setBaseEditing(toggleEditBaseInput.checked);
+});
+
+menuEditBaseInput.addEventListener('change', () => {
+  setBaseEditing(menuEditBaseInput.checked);
+});
+
 
 document.querySelectorAll('[data-add-object]').forEach((button) => {
   button.addEventListener('click', () => {
@@ -759,6 +793,30 @@ mobileMeasureButton.addEventListener('click', () => {
   closeMobileDrawers();
   selectObject(null);
   measureTool.activate();
+});
+
+topMenuToggleButton.addEventListener('click', () => {
+  topMenu.hidden = !topMenu.hidden;
+});
+
+menuClearButton.addEventListener('click', () => {
+  topMenu.hidden = true;
+  newSceneButton.click();
+});
+
+menuSaveButton.addEventListener('click', () => {
+  topMenu.hidden = true;
+  saveJsonButton.click();
+});
+
+menuLoadButton.addEventListener('click', () => {
+  topMenu.hidden = true;
+  loadJsonButton.click();
+});
+
+menuUngroupButton.addEventListener('click', () => {
+  topMenu.hidden = true;
+  ungroupSelected();
 });
 
 mobileGroupButton.addEventListener('click', groupSelected);

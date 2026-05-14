@@ -270,10 +270,53 @@ body.show-right-panel .right-panel,
   font-size: 16px;
 }
 
+.top-menu-toggle {
+  display: none;
+  padding: 7px 9px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 8px;
+  background: #1e293b;
+  color: #e2e8f0;
+  cursor: pointer;
+}
+
 .topbar-actions {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.top-menu {
+  position: absolute;
+  top: 48px;
+  right: 8px;
+  z-index: 60;
+  display: grid;
+  gap: 8px;
+  min-width: 150px;
+  padding: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.98);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.top-menu button,
+.top-menu label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 7px 8px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 8px;
+  background: #1e293b;
+  color: #e2e8f0;
+  font-size: 12px;
+}
+
+.top-menu button {
+  cursor: pointer;
 }
 
 .topbar-toggle {
@@ -559,14 +602,13 @@ body.show-right-panel .drawer-handle-right {
     font-size: 11px;
   }
 
-  .topbar-actions {
+  .top-menu-toggle {
+    display: block;
     justify-self: end;
-    gap: 6px;
   }
 
-  .topbar-actions button {
-    padding: 6px 7px;
-    font-size: 11px;
+  .topbar-actions {
+    display: none;
   }
 
   .topbar-toggle {
