@@ -159,6 +159,19 @@ body.show-right-panel .right-panel,
   gap: 6px;
 }
 
+.layer-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.layer-row.locked,
+.layer-group.locked,
+.layer-group-summary.locked {
+  opacity: 0.58;
+}
+
 .layer-item {
   width: 100%;
   padding: 8px 10px;
@@ -198,9 +211,17 @@ body.show-right-panel .right-panel,
   gap: 8px;
 }
 
-.layer-group .layer-item {
+.layer-lock-button {
+  min-width: 30px;
+  min-height: 30px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 7px;
+  background: #0f172a;
+  cursor: pointer;
+}
+
+.layer-group .layer-row {
   margin-left: 10px;
-  width: calc(100% - 10px);
 }
 
 .layers-empty {

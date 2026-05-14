@@ -29,6 +29,8 @@ import {
   removeGroup,
   removeObject,
   renameGroup as renameGroupState,
+  setGroupLocked,
+  setObjectLocked,
   state,
 } from './state/store.js';
 
@@ -126,8 +128,23 @@ function isBaseObject(objectId) {
   return initialObjectIds.has(objectId);
 }
 
+function getGroupForObject(objectId) {
+  return state.groups.find((group) => group.objectIds.includes(objectId)) ?? null;
+}
+
 function isBaseObjectLocked(objectId) {
   return !canEditBase && isBaseObject(objectId);
+}
+
+function isGroupLocked(groupId) {
+  const group = getGroupById(groupId);
+  return Boolean(group?.locked) || (!canEditBase && initialGroupIds.has(groupId));
+}
+
+function isObjectLocked(objectId) {
+  const object = getObjectById(objectId);
+  const group = getGroupForObject(objectId);
+  return Boolean(object?.locked) || isBaseObjectLocked(objectId) || Boolean(group && isGroupLocked(group.id));
 }
 
 function isBaseGroup(groupId) {
@@ -144,6 +161,10 @@ const layersPanel = createLayersPanel({
     drawers?.closeLayersDrawer();
     propertySheet?.open(objectId);
   },
+  toggleObjectLocked,
+  toggleGroupLocked,
+  isObjectLocked,
+  isGroupLocked,
   shouldShowObject: (object) => canEditBase || !isBaseObject(object.id),
   shouldShowGroup: (group) => canEditBase || !isBaseGroup(group.id),
 });
@@ -241,14 +262,10 @@ function showSelectionStatus(selectedIds) {
   }
 }
 
-function getGroupForObject(objectId) {
-  return state.groups.find((group) => group.objectIds.includes(objectId)) ?? null;
-}
-
 function selectObject(objectId, options = {}) {
   measureTool.clear();
 
-  if (objectId && isBaseObjectLocked(objectId)) {
+  if (objectId && isObjectLocked(objectId)) {
     return;
   }
 
@@ -274,7 +291,7 @@ function selectObject(objectId, options = {}) {
 
 function selectObjects(objectIds, options = {}) {
   measureTool.clear();
-  const editableObjectIds = objectIds.filter((objectId) => !isBaseObjectLocked(objectId));
+  const editableObjectIds = objectIds.filter((objectId) => !isObjectLocked(objectId));
   selectedGroupId = options.groupId ?? null;
   selection.selectMany(editableObjectIds);
   showSelectionStatus(selection.getSelectedIds());
@@ -287,7 +304,7 @@ function selectGroup(groupId) {
     return;
   }
 
-  if (!canEditBase && isBaseGroup(groupId)) {
+  if (isGroupLocked(groupId)) {
     return;
   }
 
@@ -316,6 +333,11 @@ function groupSelected() {
 }
 
 function renameGroup(groupId, name) {
+  if (isGroupLocked(groupId)) {
+    status.textContent = 'Group is locked';
+    return;
+  }
+
   history.record();
   const group = renameGroupState(groupId, name);
 
@@ -326,6 +348,42 @@ function renameGroup(groupId, name) {
 
   layersPanel.update();
   status.textContent = `Renamed group: ${group.name}`;
+}
+
+function toggleObjectLocked(objectId) {
+  const object = getObjectById(objectId);
+
+  if (!object || isBaseObjectLocked(objectId)) {
+    return;
+  }
+
+  history.record();
+  setObjectLocked(objectId, !object.locked);
+
+  if (isObjectLocked(objectId) && selection.getSelectedIds().includes(objectId)) {
+    selectObject(null);
+  }
+
+  layersPanel.update();
+  status.textContent = object.locked ? `Locked ${object.id}` : `Unlocked ${object.id}`;
+}
+
+function toggleGroupLocked(groupId) {
+  const group = getGroupById(groupId);
+
+  if (!group || (!canEditBase && isBaseGroup(groupId))) {
+    return;
+  }
+
+  history.record();
+  setGroupLocked(groupId, !group.locked);
+
+  if (isGroupLocked(groupId) && selectedGroupId === groupId) {
+    selectObject(null);
+  }
+
+  layersPanel.update();
+  status.textContent = group.locked ? `Locked ${group.name}` : `Unlocked ${group.name}`;
 }
 
 function clearNewSceneObjects() {
@@ -357,6 +415,11 @@ function ungroupSelected() {
     return;
   }
 
+  if (isGroupLocked(selectedGroupId)) {
+    status.textContent = 'Group is locked';
+    return;
+  }
+
   history.record();
   const group = removeGroup(selectedGroupId);
   selectedGroupId = null;
@@ -368,6 +431,11 @@ function deleteSelected() {
   const selectedIds = selection.getSelectedIds();
 
   if (selectedIds.length === 0) {
+    return;
+  }
+
+  if (selectedIds.some(isObjectLocked) || (selectedGroupId && isGroupLocked(selectedGroupId))) {
+    status.textContent = 'Selection has locked items';
     return;
   }
 
@@ -433,7 +501,7 @@ dragging = createDragging({
   controls,
   selection,
   objectMeshes,
-  isObjectLocked: isBaseObjectLocked,
+  isObjectLocked,
   selectObject,
   selectObjects,
   getSelectedId: () => selectedObjectId,

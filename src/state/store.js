@@ -43,6 +43,7 @@ export function addObject(type, position = { x: 0, y: 0, z: 0 }) {
     position: { x: position.x, y: position.y ?? 0, z: position.z },
     rotation: { x: 0, y: 0, z: 0 },
     params: getDefaultParams(type),
+    locked: false,
   };
 
   state.objects.push(object);
@@ -97,6 +98,7 @@ export function createGroup(objectIds, name = null) {
     id: `group_${nextGroupId++}`,
     name: name ?? `Group ${nextGroupId - 1}`,
     objectIds: uniqueObjectIds,
+    locked: false,
   };
 
   state.groups.push(group);
@@ -127,6 +129,28 @@ export function renameGroup(id, name) {
   }
 
   group.name = trimmedName;
+  return group;
+}
+
+export function setObjectLocked(id, locked) {
+  const object = getObjectById(id);
+
+  if (!object) {
+    return null;
+  }
+
+  object.locked = Boolean(locked);
+  return object;
+}
+
+export function setGroupLocked(id, locked) {
+  const group = getGroupById(id);
+
+  if (!group) {
+    return null;
+  }
+
+  group.locked = Boolean(locked);
   return group;
 }
 
@@ -213,6 +237,7 @@ function normalizeObject(object) {
       z: sanitizeNumber(object.rotation?.z, 0, -MAX_ABS_ROTATION, MAX_ABS_ROTATION),
     },
     params: sanitizeParams(type, object.params),
+    locked: Boolean(object.locked),
   };
 }
 
@@ -233,6 +258,7 @@ function normalizeGroup(group) {
     id: sanitizeId(group.id, `group_${nextGroupId++}`),
     name: sanitizeText(group.name || group.id, `Group ${nextGroupId}`, MAX_NAME_LENGTH),
     objectIds,
+    locked: Boolean(group.locked),
   };
 }
 

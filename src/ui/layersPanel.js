@@ -1,36 +1,88 @@
 import { catalog } from '../catalog/index.js';
 import { state } from '../state/store.js';
 
-export function createLayersPanel({ selectObject, selectGroup, renameGroup, openObjectProperties, shouldShowObject = () => true, shouldShowGroup = () => true }) {
+export function createLayersPanel({
+  selectObject,
+  selectGroup,
+  renameGroup,
+  openObjectProperties,
+  toggleObjectLocked,
+  toggleGroupLocked,
+  isObjectLocked = () => false,
+  isGroupLocked = () => false,
+  shouldShowObject = () => true,
+  shouldShowGroup = () => true,
+}) {
   const layersList = document.getElementById('layers-list');
   const expandedGroupIds = new Set();
 
+  function createLockButton({ locked, label, onToggle }) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'layer-lock-button';
+    button.textContent = locked ? '🔒' : '🔓';
+    button.setAttribute('aria-label', label);
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      onToggle();
+    });
+    return button;
+  }
+
   function createObjectButton(object) {
+    const row = document.createElement('div');
+    row.className = `layer-row${isObjectLocked(object.id) ? ' locked' : ''}`;
+
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'layer-item';
     button.textContent = `${catalog[object.type]?.label ?? object.type} · ${object.id}`;
     button.addEventListener('click', () => {
+      if (isObjectLocked(object.id)) {
+        return;
+      }
+
       selectObject(object.id, { skipGroupSelect: true });
       openObjectProperties?.(object.id);
     });
-    return button;
+
+    row.append(
+      button,
+      createLockButton({
+        locked: isObjectLocked(object.id),
+        label: isObjectLocked(object.id) ? 'Unlock object' : 'Lock object',
+        onToggle: () => toggleObjectLocked?.(object.id),
+      })
+    );
+    return row;
   }
 
   function createGroupSummary(group, details) {
     const summary = document.createElement('summary');
-    summary.className = 'layer-group-summary';
+    summary.className = `layer-group-summary${isGroupLocked(group.id) ? ' locked' : ''}`;
 
     const name = document.createElement('span');
     name.textContent = `${group.name} · ${group.objectIds.length} objects`;
 
-    summary.append(name);
+    summary.append(
+      name,
+      createLockButton({
+        locked: isGroupLocked(group.id),
+        label: isGroupLocked(group.id) ? 'Unlock group' : 'Lock group',
+        onToggle: () => toggleGroupLocked?.(group.id),
+      })
+    );
 
     let renameTimer = null;
     let clickTimer = null;
     let startPoint = null;
 
     function promptRename() {
+      if (isGroupLocked(group.id)) {
+        return;
+      }
+
       const nextName = window.prompt('Group name', group.name);
 
       if (nextName !== null) {
@@ -106,7 +158,9 @@ export function createLayersPanel({ selectObject, selectGroup, renameGroup, open
           expandedGroupIds.add(group.id);
         }
 
-        selectGroup(group.id);
+        if (!isGroupLocked(group.id)) {
+          selectGroup(group.id);
+        }
       }, 220);
     });
 
@@ -129,7 +183,7 @@ export function createLayersPanel({ selectObject, selectGroup, renameGroup, open
 
     for (const group of visibleGroups) {
       const details = document.createElement('details');
-      details.className = 'layer-group';
+      details.className = `layer-group${isGroupLocked(group.id) ? ' locked' : ''}`;
       details.open = expandedGroupIds.has(group.id);
       details.appendChild(createGroupSummary(group, details));
 
