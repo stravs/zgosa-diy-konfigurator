@@ -499,6 +499,10 @@ body.show-right-panel .drawer-handle-right {
   display: none;
 }
 
+.object-actions.collapsed {
+  opacity: 0.5;
+}
+
 .object-actions button {
   width: 34px;
   height: 34px;
