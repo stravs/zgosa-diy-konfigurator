@@ -23,6 +23,8 @@ export function createDragging({
   onGroundMove,
   onPrimaryClick,
   onLongPressEmpty,
+  onLongPressObject,
+  onDoubleClickObject,
 }) {
   const marker = new THREE.Mesh(
     new THREE.CylinderGeometry(0.18, 0.18, 0.05, 24),
@@ -248,7 +250,7 @@ export function createDragging({
         touchObjectId = null;
 
         if (id) {
-          selectObject(id, { editGroupItem: true });
+          onLongPressObject?.(id);
         }
       }, LONG_PRESS_MS);
       return;
@@ -290,7 +292,11 @@ export function createDragging({
       return;
     }
 
-    selectObject(objectId, { editGroupItem: true });
+    if (onDoubleClickObject) {
+      onDoubleClickObject(objectId);
+    } else {
+      selectObject(objectId, { editGroupItem: true });
+    }
   }
 
   function onPointerUp(event) {

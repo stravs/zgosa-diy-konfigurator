@@ -32,8 +32,8 @@ export function createPropertiesPanel({ getObject, snapToGrid, onBeforeChange, o
   function update() {
     const object = getObject();
 
-    noSelection.hidden = Boolean(object);
-    propertiesForm.hidden = !object;
+    noSelection.hidden = false;
+    propertiesForm.hidden = true;
 
     if (!object) {
       return;

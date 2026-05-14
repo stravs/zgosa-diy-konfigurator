@@ -13,6 +13,7 @@ import { createSelection } from './editor/selection.js';
 import { createShortcuts } from './editor/shortcuts.js';
 import { createLayersPanel } from './ui/layersPanel.js';
 import { createPropertiesPanel } from './ui/propertiesPanel.js';
+import { createPropertySheet } from './ui/propertySheet.js';
 import { createToolbar } from './ui/toolbar.js';
 import { createHistory } from './state/history.js';
 import {
@@ -136,6 +137,29 @@ const layersPanel = createLayersPanel({
   renameGroup,
   shouldShowObject: (object) => !isBaseObject(object.id),
   shouldShowGroup: (group) => !isBaseGroup(group.id),
+});
+
+const propertySheet = createPropertySheet({
+  getObjectById,
+  snapToGrid,
+  onBeforeChange: () => history.record(),
+  onChange: () => {
+    renderObjects();
+    propertiesPanel.update();
+    requestRender();
+  },
+  onConfirm: (objectId) => {
+    selectObject(objectId, { skipGroupSelect: true });
+    selection.setTransformMode('translate');
+  },
+  onCancel: (objectId, { wasNew }) => {
+    if (wasNew) {
+      removeObject(objectId);
+      selectObject(null);
+      renderObjects();
+      status.textContent = 'Canceled object';
+    }
+  },
 });
 
 const propertiesPanel = createPropertiesPanel({
@@ -408,6 +432,7 @@ function spawnObject(type, position = null) {
 
   renderObjects();
   selectObject(object.id);
+  propertySheet.open(object.id, { isNew: true });
   status.textContent = `Added ${catalog[type].label}`;
 }
 
@@ -504,6 +529,14 @@ dragging = createDragging({
     return placePendingObject(hit);
   },
   onLongPressEmpty: openObjectsDrawer,
+  onLongPressObject: (objectId) => {
+    selectObject(objectId, { editGroupItem: true });
+    propertySheet.open(objectId);
+  },
+  onDoubleClickObject: (objectId) => {
+    selectObject(objectId, { editGroupItem: true });
+    propertySheet.open(objectId);
+  },
 });
 
 createToolbar({
@@ -677,6 +710,16 @@ createDrawerHandleDrag({
   side: 'right',
   open: toggleLayersDrawer,
 });
+
+if (isMobileQuality()) {
+  const folders = [...leftPanel.querySelectorAll('.object-folder')];
+  folders.forEach((folder, index) => {
+    folder.open = index === 0;
+  });
+} else {
+  openObjectsDrawer();
+  openLayersDrawer();
+}
 
 mobileMoveButton.addEventListener('click', () => {
   closeMobileDrawers();
