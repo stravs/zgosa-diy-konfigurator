@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { createBox } from './box.js';
 import { createLedge } from './ledge.js';
 import { createQuarterPipe } from './quarterPipe.js';
@@ -12,6 +13,7 @@ import { createStairs } from './stairs.js';
 import { createSkater } from './skater.js';
 import { createBoob } from './boob.js';
 import { createFlatHip } from './flatHip.js';
+import { materials } from './materials.js';
 
 export const catalog = {
   box: {
@@ -84,6 +86,21 @@ export function createObjectMesh(object) {
   }
 
   const mesh = item.createMesh(object);
+
+  mesh.traverse((child) => {
+    if (!child.isMesh || !child.geometry) {
+      return;
+    }
+
+    const edges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(child.geometry, 35),
+      materials.edge
+    );
+    edges.name = 'object-edges';
+    edges.renderOrder = 5;
+    child.add(edges);
+  });
+
   mesh.position.set(object.position.x, object.position.y, object.position.z);
   mesh.rotation.set(object.rotation.x, object.rotation.y, object.rotation.z);
   mesh.userData.objectId = object.id;

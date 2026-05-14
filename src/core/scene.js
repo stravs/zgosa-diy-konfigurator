@@ -9,16 +9,16 @@ export function createScene(app) {
   app.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x87b8e6);
-  scene.fog = new THREE.Fog(0x87b8e6, 35, 90);
+  scene.background = new THREE.Color(0xa7c7e7);
+  scene.fog = new THREE.Fog(0xa7c7e7, 55, 130);
 
   const camera = new THREE.PerspectiveCamera(60, app.clientWidth / app.clientHeight, 0.1, 300);
   camera.position.set(18, 12, 6);
 
-  const ambientLight = new THREE.AmbientLight(0xffffff, 1.6);
+  const ambientLight = new THREE.AmbientLight(0xffffff, 1.25);
   scene.add(ambientLight);
 
-  const sunLight = new THREE.DirectionalLight(0xffffff, 2.2);
+  const sunLight = new THREE.DirectionalLight(0xffffff, 2.4);
   sunLight.position.set(10, 18, 8);
   scene.add(sunLight);
 
@@ -29,9 +29,9 @@ export function createScene(app) {
 
   const groundGeometry = new THREE.PlaneGeometry(100, 100);
   const groundMaterial = new THREE.MeshStandardMaterial({
-    color: 0x1e293b,
+    color: 0x334155,
     transparent: true,
-    opacity: 0.15,
+    opacity: 0.16,
   });
   const ground = new THREE.Mesh(groundGeometry, groundMaterial);
   ground.rotation.x = -Math.PI / 2;
