@@ -441,7 +441,26 @@ function getPreviewParams(type) {
   return {};
 }
 
-function spawnObject(type, position = null) {
+function getHitWorldNormal(hit) {
+  if (!hit?.face) {
+    return new THREE.Vector3(0, 1, 0);
+  }
+
+  const normal = hit.face.normal.clone();
+  const normalMatrix = new THREE.Matrix3().getNormalMatrix(hit.object.matrixWorld);
+  return normal.applyMatrix3(normalMatrix).normalize();
+}
+
+function getPlacementRotation(hit) {
+  const normal = getHitWorldNormal(hit);
+  const quaternion = new THREE.Quaternion().setFromUnitVectors(
+    new THREE.Vector3(0, 1, 0),
+    normal
+  );
+  return new THREE.Euler().setFromQuaternion(quaternion);
+}
+
+function spawnObject(type, position = null, rotation = null) {
   if (!catalog[type]) {
     console.warn(`Unknown object type: ${type}`);
     return;
@@ -454,6 +473,12 @@ function spawnObject(type, position = null) {
     y: spawnPosition.y ?? 0,
     z: snapToGrid(spawnPosition.z),
   });
+
+  if (rotation) {
+    object.rotation.x = rotation.x;
+    object.rotation.y = rotation.y;
+    object.rotation.z = rotation.z;
+  }
 
   renderObjects();
   selectObject(object.id);
@@ -506,6 +531,7 @@ function updatePlacementPreview(hit) {
     hit.point.y,
     snapToGrid(hit.point.z)
   );
+  previewMesh.rotation.copy(getPlacementRotation(hit));
 }
 
 function placePendingObject(hit) {
@@ -517,7 +543,7 @@ function placePendingObject(hit) {
     x: hit.point.x,
     y: hit.point.y,
     z: hit.point.z,
-  });
+  }, getPlacementRotation(hit));
   clearPlacementPreview();
   return true;
 }
