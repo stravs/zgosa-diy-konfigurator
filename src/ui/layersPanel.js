@@ -3,7 +3,7 @@ import { state } from '../state/store.js';
 
 export function createLayersPanel({ selectObject, selectGroup, renameGroup, shouldShowObject = () => true, shouldShowGroup = () => true }) {
   const layersList = document.getElementById('layers-list');
-  const collapsedGroupIds = new Set();
+  const expandedGroupIds = new Set();
 
   function createObjectButton(object) {
     const button = document.createElement('button');
@@ -23,32 +23,90 @@ export function createLayersPanel({ selectObject, selectGroup, renameGroup, shou
     const name = document.createElement('span');
     name.textContent = `${group.name} · ${group.objectIds.length} objects`;
 
-    const renameButton = document.createElement('button');
-    renameButton.type = 'button';
-    renameButton.className = 'layer-rename-button';
-    renameButton.textContent = 'Rename';
-    renameButton.addEventListener('click', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
+    summary.append(name);
 
+    let renameTimer = null;
+    let clickTimer = null;
+    let startPoint = null;
+
+    function promptRename() {
       const nextName = window.prompt('Group name', group.name);
 
       if (nextName !== null) {
         renameGroup(group.id, nextName);
       }
+    }
+
+    function cancelRenameTimer() {
+      if (renameTimer) {
+        window.clearTimeout(renameTimer);
+        renameTimer = null;
+      }
+
+      startPoint = null;
+    }
+
+    summary.addEventListener('dblclick', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (clickTimer) {
+        window.clearTimeout(clickTimer);
+        clickTimer = null;
+      }
+
+      promptRename();
     });
 
-    summary.append(name, renameButton);
+    summary.addEventListener('pointerdown', (event) => {
+      if (event.pointerType !== 'touch') {
+        return;
+      }
+
+      startPoint = { x: event.clientX, y: event.clientY };
+      renameTimer = window.setTimeout(() => {
+        renameTimer = null;
+        startPoint = null;
+        promptRename();
+      }, 550);
+    });
+
+    summary.addEventListener('pointermove', (event) => {
+      if (!startPoint) {
+        return;
+      }
+
+      const distance = Math.hypot(event.clientX - startPoint.x, event.clientY - startPoint.y);
+
+      if (distance > 10) {
+        cancelRenameTimer();
+      }
+    });
+
+    summary.addEventListener('pointerup', cancelRenameTimer);
+    summary.addEventListener('pointercancel', cancelRenameTimer);
     summary.addEventListener('click', (event) => {
       event.preventDefault();
 
-      if (details.open) {
-        collapsedGroupIds.add(group.id);
-      } else {
-        collapsedGroupIds.delete(group.id);
+      if (event.detail > 1) {
+        return;
       }
 
-      selectGroup(group.id);
+      if (clickTimer) {
+        window.clearTimeout(clickTimer);
+      }
+
+      clickTimer = window.setTimeout(() => {
+        clickTimer = null;
+
+        if (details.open) {
+          expandedGroupIds.delete(group.id);
+        } else {
+          expandedGroupIds.add(group.id);
+        }
+
+        selectGroup(group.id);
+      }, 220);
     });
 
     return summary;
@@ -71,7 +129,7 @@ export function createLayersPanel({ selectObject, selectGroup, renameGroup, shou
     for (const group of visibleGroups) {
       const details = document.createElement('details');
       details.className = 'layer-group';
-      details.open = !collapsedGroupIds.has(group.id);
+      details.open = expandedGroupIds.has(group.id);
       details.appendChild(createGroupSummary(group, details));
 
       for (const objectId of group.objectIds) {
@@ -87,9 +145,9 @@ export function createLayersPanel({ selectObject, selectGroup, renameGroup, shou
 
     const existingGroupIds = new Set(visibleGroups.map((group) => group.id));
 
-    for (const groupId of collapsedGroupIds) {
+    for (const groupId of expandedGroupIds) {
       if (!existingGroupIds.has(groupId)) {
-        collapsedGroupIds.delete(groupId);
+        expandedGroupIds.delete(groupId);
       }
     }
 

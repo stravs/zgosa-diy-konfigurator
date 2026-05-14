@@ -198,20 +198,6 @@ body.show-right-panel .right-panel,
   gap: 8px;
 }
 
-.layer-rename-button {
-  padding: 3px 6px;
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  border-radius: 5px;
-  background: #0f172a;
-  color: #cbd5e1;
-  cursor: pointer;
-  font-size: 11px;
-}
-
-.layer-rename-button:hover {
-  background: #334155;
-}
-
 .layer-group .layer-item {
   margin-left: 10px;
   width: calc(100% - 10px);

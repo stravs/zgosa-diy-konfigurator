@@ -34,6 +34,7 @@ preventBrowserZoom();
 const app = document.getElementById('app');
 const status = document.getElementById('status');
 const toggleGridInput = document.getElementById('toggle-grid');
+const toggleEditBaseInput = document.getElementById('toggle-edit-base');
 const objectsHandleButton = document.getElementById('objects-handle');
 const layersHandleButton = document.getElementById('layers-handle');
 const mobileMoveButton = document.getElementById('mobile-move');
@@ -110,6 +111,7 @@ let previewMesh = null;
 let dragging = null;
 let initialObjectIds = new Set();
 let initialGroupIds = new Set();
+let canEditBase = false;
 
 const history = createHistory({
   onRestore: () => {
@@ -127,6 +129,10 @@ function isBaseObject(objectId) {
   return initialObjectIds.has(objectId);
 }
 
+function isBaseObjectLocked(objectId) {
+  return !canEditBase && isBaseObject(objectId);
+}
+
 function isBaseGroup(groupId) {
   return initialGroupIds.has(groupId);
 }
@@ -135,8 +141,8 @@ const layersPanel = createLayersPanel({
   selectObject,
   selectGroup,
   renameGroup,
-  shouldShowObject: (object) => !isBaseObject(object.id),
-  shouldShowGroup: (group) => !isBaseGroup(group.id),
+  shouldShowObject: (object) => canEditBase || !isBaseObject(object.id),
+  shouldShowGroup: (group) => canEditBase || !isBaseGroup(group.id),
 });
 
 const propertySheet = createPropertySheet({
@@ -239,7 +245,7 @@ function getGroupForObject(objectId) {
 function selectObject(objectId, options = {}) {
   measureTool.clear();
 
-  if (objectId && isBaseObject(objectId)) {
+  if (objectId && isBaseObjectLocked(objectId)) {
     return;
   }
 
@@ -265,7 +271,7 @@ function selectObject(objectId, options = {}) {
 
 function selectObjects(objectIds, options = {}) {
   measureTool.clear();
-  const editableObjectIds = objectIds.filter((objectId) => !isBaseObject(objectId));
+  const editableObjectIds = objectIds.filter((objectId) => !isBaseObjectLocked(objectId));
   selectedGroupId = options.groupId ?? null;
   selection.selectMany(editableObjectIds);
   showSelectionStatus(selection.getSelectedIds());
@@ -278,7 +284,7 @@ function selectGroup(groupId) {
     return;
   }
 
-  if (isBaseGroup(groupId)) {
+  if (!canEditBase && isBaseGroup(groupId)) {
     return;
   }
 
@@ -505,7 +511,7 @@ dragging = createDragging({
   controls,
   selection,
   objectMeshes,
-  isObjectLocked: isBaseObject,
+  isObjectLocked: isBaseObjectLocked,
   selectObject,
   selectObjects,
   getSelectedId: () => selectedObjectId,
@@ -559,6 +565,17 @@ createToolbar({
 });
 toggleGridInput.addEventListener('change', () => {
   grid.visible = toggleGridInput.checked;
+});
+
+toggleEditBaseInput.addEventListener('change', () => {
+  canEditBase = toggleEditBaseInput.checked;
+
+  if (!canEditBase && selection.getSelectedIds().some(isBaseObject)) {
+    selectObject(null);
+  }
+
+  layersPanel.update();
+  status.textContent = canEditBase ? 'Base editing enabled' : 'Base editing disabled';
 });
 
 document.querySelectorAll('[data-add-object]').forEach((button) => {
