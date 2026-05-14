@@ -47,6 +47,12 @@ function getFields(object) {
     fields.push({ label: 'Number of Stairs', prop: 'params.stepCount', value: object.params.stepCount ?? 5, min: 1, step: 1 });
   }
 
+  fields.push(
+    { label: 'X', prop: 'position.x', value: object.position.x, step: 0.01 },
+    { label: 'Y', prop: 'position.y', value: object.position.y, step: 0.01 },
+    { label: 'Z', prop: 'position.z', value: object.position.z, step: 0.01 }
+  );
+
   return fields;
 }
 

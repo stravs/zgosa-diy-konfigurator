@@ -1,7 +1,7 @@
 import { catalog } from '../catalog/index.js';
 import { state } from '../state/store.js';
 
-export function createLayersPanel({ selectObject, selectGroup, renameGroup, shouldShowObject = () => true, shouldShowGroup = () => true }) {
+export function createLayersPanel({ selectObject, selectGroup, renameGroup, openObjectProperties, shouldShowObject = () => true, shouldShowGroup = () => true }) {
   const layersList = document.getElementById('layers-list');
   const expandedGroupIds = new Set();
 
@@ -12,6 +12,7 @@ export function createLayersPanel({ selectObject, selectGroup, renameGroup, shou
     button.textContent = `${catalog[object.type]?.label ?? object.type} · ${object.id}`;
     button.addEventListener('click', () => {
       selectObject(object.id, { skipGroupSelect: true });
+      openObjectProperties?.(object.id);
     });
     return button;
   }

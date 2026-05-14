@@ -210,7 +210,7 @@ body.show-right-panel .right-panel,
 }
 
 #properties-form {
-  display: grid;
+  display: none !important;
   gap: 14px;
 }
 

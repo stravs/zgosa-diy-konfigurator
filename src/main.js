@@ -137,15 +137,21 @@ function isBaseGroup(groupId) {
   return initialGroupIds.has(groupId);
 }
 
+let propertySheet = null;
+
 const layersPanel = createLayersPanel({
   selectObject,
   selectGroup,
   renameGroup,
+  openObjectProperties: (objectId) => {
+    closeLayersDrawer();
+    propertySheet?.open(objectId);
+  },
   shouldShowObject: (object) => canEditBase || !isBaseObject(object.id),
   shouldShowGroup: (group) => canEditBase || !isBaseGroup(group.id),
 });
 
-const propertySheet = createPropertySheet({
+propertySheet = createPropertySheet({
   getObjectById,
   snapToGrid,
   onBeforeChange: () => history.record(),
