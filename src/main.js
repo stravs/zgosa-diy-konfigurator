@@ -15,6 +15,7 @@ import { createShortcuts } from './editor/shortcuts.js';
 import { createDrawers } from './ui/drawers.js';
 import { createLayersPanel } from './ui/layersPanel.js';
 import { createMobileToolbar } from './ui/mobileToolbar.js';
+import { createObjectActions } from './ui/objectActions.js';
 import { createPropertiesPanel } from './ui/propertiesPanel.js';
 import { createPropertySheet } from './ui/propertySheet.js';
 import { createToolbar } from './ui/toolbar.js';
@@ -84,6 +85,7 @@ let renderQueued = false;
 
 function renderScene() {
   renderQueued = false;
+  objectActions?.update();
   renderer.render(scene, camera);
 }
 
@@ -109,6 +111,7 @@ let selectedGroupId = null;
 let dragging = null;
 let placement = null;
 let scaleHandles = null;
+let objectActions = null;
 let drawers = null;
 let initialObjectIds = new Set();
 let initialGroupIds = new Set();
@@ -160,9 +163,8 @@ const layersPanel = createLayersPanel({
   selectObject,
   selectGroup,
   renameGroup,
-  openObjectProperties: (objectId) => {
+  openObjectProperties: () => {
     drawers?.closeLayersDrawer();
-    propertySheet?.open(objectId);
   },
   toggleObjectLocked,
   toggleGroupLocked,
@@ -184,6 +186,7 @@ propertySheet = createPropertySheet({
   onConfirm: (objectId) => {
     selectObject(objectId, { skipGroupSelect: true });
     setMoveTool();
+    objectActions?.expand();
   },
   onCancel: (objectId, { wasNew }) => {
     if (wasNew) {
@@ -191,6 +194,8 @@ propertySheet = createPropertySheet({
       selectObject(null);
       renderObjects();
       status.textContent = 'Canceled object';
+    } else {
+      objectActions?.expand();
     }
   },
 });
@@ -265,6 +270,7 @@ scaleHandles = createScaleHandles({
 
 function setMoveTool() {
   activeTool = 'move';
+  objectActions?.setActiveIcon('↔');
   scaleHandles?.hide();
   selection.setTransformEnabled(true);
   selection.setTransformMode('translate');
@@ -272,6 +278,7 @@ function setMoveTool() {
 
 function setRotateTool() {
   activeTool = 'rotate';
+  objectActions?.setActiveIcon('⟳');
   scaleHandles?.hide();
   selection.setTransformEnabled(true);
   selection.setTransformMode('rotate');
@@ -279,13 +286,19 @@ function setRotateTool() {
 
 function setScaleTool() {
   activeTool = 'scale';
+  objectActions?.setActiveIcon('⬚');
   selection.setTransformEnabled(false);
   scaleHandles?.setEnabled(true);
 
-  if (selection.getSelectedIds().length !== 1 || selectedGroupId) {
-    status.textContent = 'Scale works on one object';
+  const selectedIds = selection.getSelectedIds();
+  const object = selectedIds.length === 1 ? getObjectById(selectedIds[0]) : null;
+
+  if (selectedIds.length !== 1 || selectedGroupId) {
+    status.textContent = 'Extend works on one box';
+  } else if (object?.type !== 'box') {
+    status.textContent = 'Extend supports Box only for now';
   } else {
-    status.textContent = 'Scale tool active';
+    status.textContent = 'Extend box face';
   }
 }
 
@@ -299,11 +312,29 @@ function updateActiveTool() {
   }
 }
 
+objectActions = createObjectActions({
+  camera,
+  renderer,
+  objectMeshes,
+  selection,
+  getSelectedGroupId: () => selectedGroupId,
+  getObjectById,
+  setMoveTool,
+  setRotateTool,
+  setScaleTool,
+  openProperties: (objectId) => {
+    objectActions?.hide();
+    propertySheet.open(objectId);
+  },
+  shouldHide: () => propertySheet.isOpen(),
+});
+
 function renderObjects() {
   objectRenderer.render();
   selection.updateHelper();
   scaleHandles?.update();
   layersPanel.update();
+  objectActions?.update();
   requestRender();
 }
 
@@ -312,6 +343,7 @@ function showSelectionStatus(selectedIds) {
   propertiesPanel.update();
   updateActiveTool();
   layersPanel.update();
+  objectActions?.update();
   requestRender();
 
   if (selectedGroupId) {

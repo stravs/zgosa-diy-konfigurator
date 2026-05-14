@@ -475,6 +475,51 @@ body.show-right-panel .drawer-handle-right {
   background: #334155;
 }
 
+.object-actions {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 80;
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.94);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.35);
+}
+
+.object-actions-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.object-actions.expanded .object-actions-toggle,
+.object-actions.collapsed .object-actions-buttons {
+  display: none;
+}
+
+.object-actions button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 999px;
+  background: #1e293b;
+  color: #e2e8f0;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.object-actions button:hover {
+  background: #334155;
+}
+
+.object-actions button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .context-menu {
   position: fixed;
   z-index: 10;

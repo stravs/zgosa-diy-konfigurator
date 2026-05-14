@@ -78,7 +78,6 @@ export function createPlacementController({
 
     renderObjects();
     selectObject(object.id);
-    propertySheet.open(object.id, { isNew: true });
     setStatus(`Added ${catalog[type].label}`);
     return object;
   }
