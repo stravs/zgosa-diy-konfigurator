@@ -40,6 +40,7 @@ const layersHandleButton = document.getElementById('layers-handle');
 const mobileMoveButton = document.getElementById('mobile-move');
 const mobileRotateButton = document.getElementById('mobile-rotate');
 const mobileMeasureButton = document.getElementById('mobile-measure');
+const mobileGroupButton = document.getElementById('mobile-group');
 const mobileUndoButton = document.getElementById('mobile-undo');
 const mobileRedoButton = document.getElementById('mobile-redo');
 const mobileDeleteButton = document.getElementById('mobile-delete');
@@ -760,6 +761,7 @@ mobileMeasureButton.addEventListener('click', () => {
   measureTool.activate();
 });
 
+mobileGroupButton.addEventListener('click', groupSelected);
 mobileUndoButton.addEventListener('click', undoAction);
 mobileRedoButton.addEventListener('click', redoAction);
 mobileDeleteButton.addEventListener('click', deleteSelected);

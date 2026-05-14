@@ -622,6 +622,7 @@ body.show-right-panel .drawer-handle-right {
   }
 
   .bottombar {
+    justify-content: center;
     gap: 6px;
     padding: 6px 8px;
     overflow-x: auto;
@@ -641,15 +642,15 @@ body.show-right-panel .drawer-handle-right {
     align-items: center;
     justify-content: center;
     flex: 0 0 auto;
-    min-width: 58px;
-    min-height: 36px;
+    min-width: 44px;
+    min-height: 40px;
     padding: 6px 8px;
     border: 1px solid rgba(148, 163, 184, 0.28);
     border-radius: 10px;
     background: #1e293b;
     color: #e2e8f0;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 18px;
   }
 
   .mobile-tool:active {
