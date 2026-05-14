@@ -149,10 +149,10 @@ export function createObjectActions({
       ? getObjectById(selectedIds[0])
       : null;
 
-    scaleButton.hidden = !object;
+    scaleButton.hidden = !object || object.type !== 'box';
     propertiesButton.hidden = !object;
-    scaleButton.disabled = Boolean(object && object.type !== 'box');
-    scaleButton.title = object?.type === 'box' ? 'Extend face' : 'Extend face supports Box only';
+    scaleButton.disabled = false;
+    scaleButton.title = 'Extend face';
 
     panel.hidden = false;
     panel.style.transform = `translate(${Math.round(point.x)}px, ${Math.round(point.y + 56)}px) translate(-50%, 0)`;

@@ -624,7 +624,6 @@ dragging = createDragging({
   onLongPressEmpty: () => drawers?.openObjectsDrawer(),
   onLongPressObject: (objectId) => {
     selectObject(objectId, { editGroupItem: true });
-    propertySheet.open(objectId);
   },
   onDoubleClickObject: (objectId) => {
     selectObject(objectId, { editGroupItem: true });
