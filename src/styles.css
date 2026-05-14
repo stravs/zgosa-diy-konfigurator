@@ -519,6 +519,11 @@ body.show-right-panel .drawer-handle-right {
   background: #334155;
 }
 
+.object-actions button:focus,
+.object-actions button:focus-visible {
+  outline: none;
+}
+
 .object-actions button:disabled {
   opacity: 0.35;
   cursor: not-allowed;

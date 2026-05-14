@@ -24,6 +24,7 @@ function getScreenPoint({ camera, renderer, objectMeshes, selectedIds }) {
   }
 
   const center = box.getCenter(new THREE.Vector3());
+  center.y = box.max.y;
   const projected = center.project(camera);
 
   if (projected.z < -1 || projected.z > 1) {
@@ -85,6 +86,10 @@ export function createObjectActions({
     panel.classList.toggle('expanded', expanded);
     panel.classList.toggle('collapsed', !expanded);
     toggleButton.textContent = activeIcon;
+
+    if (expanded && panel.contains(document.activeElement)) {
+      document.activeElement.blur();
+    }
   }
 
   function createButton(icon, label, onClick) {
@@ -100,6 +105,7 @@ export function createObjectActions({
       event.preventDefault();
       event.stopPropagation();
       activeIcon = icon;
+      button.blur();
       onClick();
       setExpanded(false);
       update();
@@ -114,6 +120,7 @@ export function createObjectActions({
   toggleButton.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
+    toggleButton.blur();
     setExpanded(true);
   });
 
@@ -155,7 +162,7 @@ export function createObjectActions({
     scaleButton.title = 'Extend face';
 
     panel.hidden = false;
-    panel.style.transform = `translate(${Math.round(point.x)}px, ${Math.round(point.y + 56)}px) translate(-50%, 0)`;
+    panel.style.transform = `translate(${Math.round(point.x)}px, ${Math.round(point.y - 48)}px) translate(-50%, -100%)`;
   }
 
   return {
