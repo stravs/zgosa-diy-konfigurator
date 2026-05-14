@@ -105,8 +105,26 @@ export function renameGroup(id, name) {
   return group;
 }
 
+function roundForSave(value) {
+  if (typeof value === 'number') {
+    return Math.round(value * 100) / 100;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(roundForSave);
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entryValue]) => [key, roundForSave(entryValue)])
+    );
+  }
+
+  return value;
+}
+
 export function serializeState() {
-  return JSON.stringify(state, null, 2);
+  return JSON.stringify(roundForSave(state));
 }
 
 export function loadState(snapshot) {
