@@ -2,6 +2,7 @@ export function createShortcuts({
   unselect,
   setMoveTool,
   setRotateTool,
+  setScaleTool,
   activateMeasureTool,
   deleteSelected,
   duplicateSelected,
@@ -18,6 +19,8 @@ export function createShortcuts({
     if (isFormControl) {
       return;
     }
+
+    const hasModifier = event.ctrlKey || event.metaKey || event.altKey;
 
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
       event.preventDefault();
@@ -41,9 +44,11 @@ export function createShortcuts({
     } else if (event.code === 'Space') {
       event.preventDefault();
       setMoveTool();
-    } else if (event.key === 'r' || event.key === 'R') {
+    } else if (!hasModifier && (event.key === 'r' || event.key === 'R')) {
       setRotateTool();
-    } else if (event.key === 'm' || event.key === 'M') {
+    } else if (!hasModifier && (event.key === 's' || event.key === 'S')) {
+      setScaleTool();
+    } else if (!hasModifier && (event.key === 'm' || event.key === 'M')) {
       activateMeasureTool();
     } else if (event.key === 'Delete' || event.key === 'Backspace') {
       deleteSelected();

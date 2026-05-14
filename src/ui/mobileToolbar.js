@@ -1,8 +1,10 @@
 export function createMobileToolbar({
   closeMobileDrawers,
-  selection,
+  setMoveTool,
+  setRotateTool,
   selectObject,
   measureTool,
+  setScaleTool,
   groupSelected,
   undoAction,
   redoAction,
@@ -10,12 +12,17 @@ export function createMobileToolbar({
 }) {
   document.getElementById('mobile-move').addEventListener('click', () => {
     closeMobileDrawers();
-    selection.setTransformMode('translate');
+    setMoveTool();
   });
 
   document.getElementById('mobile-rotate').addEventListener('click', () => {
     closeMobileDrawers();
-    selection.setTransformMode('rotate');
+    setRotateTool();
+  });
+
+  document.getElementById('mobile-scale').addEventListener('click', () => {
+    closeMobileDrawers();
+    setScaleTool();
   });
 
   document.getElementById('mobile-measure').addEventListener('click', () => {

@@ -9,6 +9,7 @@ import { createDragging } from './editor/dragging.js';
 import { createMeasureTool } from './editor/measureTool.js';
 import { createObjectRenderer } from './editor/objectRenderer.js';
 import { createPlacementController } from './editor/placement.js';
+import { createScaleHandles } from './editor/scaleHandles.js';
 import { createSelection } from './editor/selection.js';
 import { createShortcuts } from './editor/shortcuts.js';
 import { createDrawers } from './ui/drawers.js';
@@ -107,10 +108,12 @@ let selectedObjectId = null;
 let selectedGroupId = null;
 let dragging = null;
 let placement = null;
+let scaleHandles = null;
 let drawers = null;
 let initialObjectIds = new Set();
 let initialGroupIds = new Set();
 let canEditBase = false;
+let activeTool = 'move';
 
 const history = createHistory({
   onRestore: () => {
@@ -180,7 +183,7 @@ propertySheet = createPropertySheet({
   },
   onConfirm: (objectId) => {
     selectObject(objectId, { skipGroupSelect: true });
-    selection.setTransformMode('translate');
+    setMoveTool();
   },
   onCancel: (objectId, { wasNew }) => {
     if (wasNew) {
@@ -228,6 +231,7 @@ const selection = createSelection({
   onTransformStart: () => history.record(),
   onChange: () => {
     propertiesPanel.update();
+    scaleHandles?.update();
     requestRender();
   },
   setStatus: (message) => {
@@ -236,9 +240,69 @@ const selection = createSelection({
   },
 });
 
+scaleHandles = createScaleHandles({
+  scene,
+  camera,
+  renderer,
+  controls,
+  selection,
+  objectMeshes,
+  getObjectById,
+  getSelectedGroupId: () => selectedGroupId,
+  isObjectLocked,
+  snapToGrid,
+  onBeforeChange: () => history.record(),
+  onChange: (object) => {
+    renderObjects();
+    propertiesPanel.update();
+    status.textContent = `Scaled ${object.id}`;
+  },
+  setStatus: (message) => {
+    status.textContent = message;
+  },
+  requestRender,
+});
+
+function setMoveTool() {
+  activeTool = 'move';
+  scaleHandles?.hide();
+  selection.setTransformEnabled(true);
+  selection.setTransformMode('translate');
+}
+
+function setRotateTool() {
+  activeTool = 'rotate';
+  scaleHandles?.hide();
+  selection.setTransformEnabled(true);
+  selection.setTransformMode('rotate');
+}
+
+function setScaleTool() {
+  activeTool = 'scale';
+  selection.setTransformEnabled(false);
+  scaleHandles?.setEnabled(true);
+
+  if (selection.getSelectedIds().length !== 1 || selectedGroupId) {
+    status.textContent = 'Scale works on one object';
+  } else {
+    status.textContent = 'Scale tool active';
+  }
+}
+
+function updateActiveTool() {
+  if (activeTool === 'scale') {
+    selection.setTransformEnabled(false);
+    scaleHandles?.setEnabled(true);
+  } else {
+    scaleHandles?.hide();
+    selection.setTransformEnabled(true);
+  }
+}
+
 function renderObjects() {
   objectRenderer.render();
   selection.updateHelper();
+  scaleHandles?.update();
   layersPanel.update();
   requestRender();
 }
@@ -246,6 +310,7 @@ function renderObjects() {
 function showSelectionStatus(selectedIds) {
   selectedObjectId = selectedIds.length === 1 ? selectedIds[0] : null;
   propertiesPanel.update();
+  updateActiveTool();
   layersPanel.update();
   requestRender();
 
@@ -619,9 +684,11 @@ topMenuPanel = createTopMenu({
 
 createMobileToolbar({
   closeMobileDrawers,
-  selection,
+  setMoveTool,
+  setRotateTool,
   selectObject,
   measureTool,
+  setScaleTool,
   groupSelected,
   undoAction,
   redoAction,
@@ -630,8 +697,9 @@ createMobileToolbar({
 
 createShortcuts({
   unselect: () => selectObject(null),
-  setMoveTool: () => selection.setTransformMode('translate'),
-  setRotateTool: () => selection.setTransformMode('rotate'),
+  setMoveTool,
+  setRotateTool,
+  setScaleTool,
   activateMeasureTool: () => {
     selectObject(null);
     measureTool.activate();

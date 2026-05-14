@@ -59,6 +59,7 @@ export function createSelection({ scene, camera, renderer, controls, objectMeshe
   let selectedObjectIds = [];
   let selectedMesh = null;
   let transformSnapshot = null;
+  let transformEnabled = true;
 
   function getSelectedObjects() {
     return selectedObjectIds
@@ -106,7 +107,13 @@ export function createSelection({ scene, camera, renderer, controls, objectMeshe
       multiSelectionHelper.visible = false;
       selectionHelper.visible = true;
       selectionHelper.setFromObject(selectedMesh);
-      transformControls.attach(selectedMesh);
+
+      if (transformEnabled) {
+        transformControls.attach(selectedMesh);
+      } else {
+        transformControls.detach();
+      }
+
       return;
     }
 
@@ -114,7 +121,13 @@ export function createSelection({ scene, camera, renderer, controls, objectMeshe
     transformGroup.position.copy(center);
     transformGroup.rotation.set(0, 0, 0);
     selectionHelper.visible = false;
-    transformControls.attach(transformGroup);
+
+    if (transformEnabled) {
+      transformControls.attach(transformGroup);
+    } else {
+      transformControls.detach();
+    }
+
     updateMultiBounds();
   }
 
@@ -215,7 +228,13 @@ export function createSelection({ scene, camera, renderer, controls, objectMeshe
     onChange?.(null);
   }
 
+  function setTransformEnabled(enabled) {
+    transformEnabled = Boolean(enabled);
+    updateHelper();
+  }
+
   function setTransformMode(mode) {
+    transformEnabled = true;
     transformControls.setMode(mode);
 
     if (mode === 'rotate') {
@@ -260,7 +279,8 @@ export function createSelection({ scene, camera, renderer, controls, objectMeshe
     toggle,
     updateHelper,
     setTransformMode,
-    isUsingTransformControls: () => Boolean(selectedObjectIds.length > 0 && transformControls.axis),
+    setTransformEnabled,
+    isUsingTransformControls: () => Boolean(transformEnabled && selectedObjectIds.length > 0 && transformControls.axis),
     getSelectedId: () => selectedObjectIds[0] ?? null,
     getSelectedIds: () => [...selectedObjectIds],
     getSelectedMesh: () => selectedMesh,
