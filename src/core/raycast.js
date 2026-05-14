@@ -23,8 +23,19 @@ export function createRaycaster({ renderer, camera, ground, objectLayer }) {
     return hits.find((hit) => hit.object.userData.objectId) ?? null;
   }
 
+  function getPlacementHit(event) {
+    const objectHit = getObjectHit(event);
+
+    if (objectHit) {
+      return objectHit;
+    }
+
+    return getGroundHit(event);
+  }
+
   return {
     getGroundHit,
     getObjectHit,
+    getPlacementHit,
   };
 }

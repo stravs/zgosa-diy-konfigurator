@@ -503,7 +503,7 @@ function updatePlacementPreview(hit) {
   previewMesh.visible = true;
   previewMesh.position.set(
     snapToGrid(hit.point.x),
-    0,
+    hit.point.y,
     snapToGrid(hit.point.z)
   );
 }
@@ -515,7 +515,7 @@ function placePendingObject(hit) {
 
   spawnObject(pendingObjectType, {
     x: hit.point.x,
-    y: 0,
+    y: hit.point.y,
     z: hit.point.z,
   });
   clearPlacementPreview();

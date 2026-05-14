@@ -148,8 +148,9 @@ export function createDragging({
     }
 
     const hit = raycast.getGroundHit(event);
+    const placementHit = raycast.getPlacementHit(event);
     updateGroundMarker(hit);
-    onGroundMove?.(hit);
+    onGroundMove?.(placementHit);
 
     if (marqueeStart) {
       marqueeCurrent = { x: event.clientX, y: event.clientY };
@@ -199,8 +200,9 @@ export function createDragging({
     }
 
     const groundHit = raycast.getGroundHit(event);
+    const placementHit = raycast.getPlacementHit(event);
 
-    if (onPrimaryClick?.(groundHit)) {
+    if (onPrimaryClick?.(placementHit)) {
       return;
     }
 
