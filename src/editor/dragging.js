@@ -17,6 +17,8 @@ export function createDragging({
   getObjectById,
   snapToGrid,
   onBeforeChange,
+  canDragObject = () => true,
+  onObjectDragEnd,
   updateProperties,
   hideContextMenu,
   setStatus,
@@ -42,6 +44,7 @@ export function createDragging({
   let lastGroundHit = { x: 0, y: 0, z: 0 };
   let isDraggingObject = false;
   let dragOffset = { x: 0, z: 0 };
+  let dragStartPoint = null;
   let marqueeStart = null;
   let marqueeCurrent = null;
   let marqueeAdditive = false;
@@ -50,6 +53,27 @@ export function createDragging({
   let touchEmptyStart = null;
   let touchObjectId = null;
   const activeTouchPointers = new Set();
+  const dragRaycaster = new THREE.Raycaster();
+
+  function getPointerNdc(event) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    return new THREE.Vector2(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -(((event.clientY - rect.top) / rect.height) * 2 - 1)
+    );
+  }
+
+  function getFallbackPlanePoint(event, y) {
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -y);
+    const point = new THREE.Vector3();
+    dragRaycaster.setFromCamera(getPointerNdc(event), camera);
+    return dragRaycaster.ray.intersectPlane(plane, point) ? point : null;
+  }
+
+  function getMovePoint(event, object) {
+    const surfaceHit = raycast.getPlacementHit(event, { excludeIds: [object.id] });
+    return surfaceHit?.point ?? getFallbackPlanePoint(event, object.position.y);
+  }
 
   function updateGroundMarker(hit) {
     if (!hit) {
@@ -161,25 +185,55 @@ export function createDragging({
     const selectedObjectId = getSelectedId();
     const selectedMesh = selection.getSelectedMesh();
 
-    if (!isDraggingObject || !selectedObjectId || !selectedMesh || !hit) {
+    if (!isDraggingObject || !selectedObjectId || !selectedMesh) {
       return;
     }
 
     const object = getObjectById(selectedObjectId);
+    const movePoint = object ? getMovePoint(event, object) : null;
 
-    if (!object) {
+    if (!object || !movePoint) {
       return;
     }
 
-    const nextX = snapToGrid(hit.point.x + dragOffset.x);
-    const nextZ = snapToGrid(hit.point.z + dragOffset.z);
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation?.();
+
+    const nextX = movePoint.x + dragOffset.x;
+    const nextZ = movePoint.z + dragOffset.z;
+    const nextY = movePoint.y;
 
     object.position.x = nextX;
+    object.position.y = nextY;
     object.position.z = nextZ;
-    selectedMesh.position.set(nextX, object.position.y, nextZ);
+    selectedMesh.position.set(nextX, nextY, nextZ);
     selection.updateSelectedMeshBounds();
     updateProperties();
     setStatus(`Moving ${object.id}: x ${nextX.toFixed(2)}, z ${nextZ.toFixed(2)}`);
+  }
+
+  function startObjectDrag(event, object) {
+    const movePoint = getMovePoint(event, object);
+
+    if (!movePoint) {
+      return false;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation?.();
+
+    onBeforeChange?.();
+    controls.enabled = false;
+    isDraggingObject = true;
+    dragStartPoint = { x: event.clientX, y: event.clientY, pointerType: event.pointerType };
+    renderer.domElement.setPointerCapture?.(event.pointerId);
+    dragOffset = {
+      x: object.position.x - movePoint.x,
+      z: object.position.z - movePoint.z,
+    };
+    return true;
   }
 
   function onPointerDown(event) {
@@ -204,6 +258,17 @@ export function createDragging({
 
     if (onPrimaryClick?.(placementHit)) {
       return;
+    }
+
+    if (event.pointerType === 'touch' && canDragObject()) {
+      const selectedIds = selection.getSelectedIds();
+      const object = selectedIds.length === 1 ? getObjectById(selectedIds[0]) : null;
+
+      if (object) {
+        cancelLongPress();
+        startObjectDrag(event, object);
+        return;
+      }
     }
 
     if (selection.isUsingTransformControls()) {
@@ -238,11 +303,20 @@ export function createDragging({
     const objectId = objectHit.object.userData.objectId;
     const object = getObjectById(objectId);
 
-    if (!object || !groundHit) {
+    if (!object) {
       return;
     }
 
     if (event.pointerType === 'touch') {
+      const selectedIds = selection.getSelectedIds();
+
+      if (selectedIds.length === 1 && selectedIds.includes(objectId) && canDragObject()) {
+        event.preventDefault();
+        cancelLongPress();
+        startObjectDrag(event, object);
+        return;
+      }
+
       touchObjectId = objectId;
       longPressStart = { x: event.clientX, y: event.clientY };
       longPressTimer = window.setTimeout(() => {
@@ -266,17 +340,11 @@ export function createDragging({
 
     const selectedIds = selection.getSelectedIds();
 
-    if (event.detail >= 2 || event.shiftKey || selectedIds.length > 1 || !selectedIds.includes(objectId)) {
+    if (event.detail >= 2 || event.shiftKey || selectedIds.length > 1 || !selectedIds.includes(objectId) || !canDragObject()) {
       return;
     }
 
-    onBeforeChange?.();
-    controls.enabled = false;
-    isDraggingObject = true;
-    dragOffset = {
-      x: object.position.x - groundHit.point.x,
-      z: object.position.z - groundHit.point.z,
-    };
+    startObjectDrag(event, object);
   }
 
   function onDoubleClick(event) {
@@ -346,8 +414,19 @@ export function createDragging({
       return;
     }
 
+    const wasTap = dragStartPoint
+      && dragStartPoint.pointerType === 'touch'
+      && Math.hypot(event.clientX - dragStartPoint.x, event.clientY - dragStartPoint.y) <= 10;
+
     isDraggingObject = false;
+    dragStartPoint = null;
     controls.enabled = true;
+    renderer.domElement.releasePointerCapture?.(event.pointerId);
+    onObjectDragEnd?.();
+
+    if (wasTap && canDragObject()) {
+      selectObject(null);
+    }
   }
 
   renderer.domElement.addEventListener('pointermove', updatePointer);
@@ -360,6 +439,7 @@ export function createDragging({
     getLastGroundHit: () => lastGroundHit,
     stopDragging: () => {
       isDraggingObject = false;
+      dragStartPoint = null;
       controls.enabled = true;
       marquee.hidden = true;
       marqueeStart = null;

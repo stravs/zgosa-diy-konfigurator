@@ -17,14 +17,18 @@ export function createRaycaster({ renderer, camera, ground, objectLayer }) {
     return hit ?? null;
   }
 
-  function getObjectHit(event) {
+  function getObjectHit(event, options = {}) {
     update(event);
+    const excludeIds = new Set(options.excludeIds ?? []);
     const hits = raycaster.intersectObjects(objectLayer.children, true);
-    return hits.find((hit) => hit.object.userData.objectId) ?? null;
+    return hits.find((hit) => {
+      const objectId = hit.object.userData.objectId;
+      return objectId && !excludeIds.has(objectId);
+    }) ?? null;
   }
 
-  function getPlacementHit(event) {
-    const objectHit = getObjectHit(event);
+  function getPlacementHit(event, options = {}) {
+    const objectHit = getObjectHit(event, options);
 
     if (objectHit) {
       return objectHit;
