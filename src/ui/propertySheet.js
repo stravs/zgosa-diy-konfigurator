@@ -19,8 +19,8 @@ function getFields(object) {
     fields.push({ label: 'Radius', prop: 'params.radius', value: object.params.radius ?? 2, min: 0.1, step: 0.1 });
   }
 
-  if (['bank', 'pyramid', 'rail'].includes(object.type)) {
-    fields.push({ label: object.type === 'pyramid' ? 'Bank Length' : 'Length', prop: 'params.length', value: object.params.length, min: 0.1, step: 0.1 });
+  if (['bank', 'pyramid', 'flatHip', 'rail'].includes(object.type)) {
+    fields.push({ label: object.type === 'pyramid' || object.type === 'flatHip' ? 'Bank Length' : 'Length', prop: 'params.length', value: object.params.length, min: 0.1, step: 0.1 });
   }
 
   if (['quarterPipe', 'halfPipe', 'corner'].includes(object.type)) {
@@ -31,7 +31,7 @@ function getFields(object) {
     fields.push({ label: 'Flat Length', prop: 'params.flatLength', value: object.params.flatLength ?? 1.5, min: 0, step: 0.1 });
   }
 
-  if (['corner', 'hip'].includes(object.type)) {
+  if (['corner', 'hip', 'flatHip'].includes(object.type)) {
     fields.push({ label: object.type === 'hip' ? 'Sweep Angle' : 'Degrees', prop: 'params.degrees', value: object.params.degrees ?? 90, min: 1, max: 180, step: 1 });
   }
 
@@ -39,7 +39,7 @@ function getFields(object) {
     fields.push({ label: 'Top Radius', prop: 'params.topRadius', value: object.params.topRadius ?? 0.6, min: 0, step: 0.1 });
   }
 
-  if (object.type === 'pyramid') {
+  if (object.type === 'pyramid' || object.type === 'flatHip') {
     fields.push({ label: 'Top Size', prop: 'params.topSize', value: object.params.topSize ?? 1.2, min: 0, step: 0.1 });
   }
 

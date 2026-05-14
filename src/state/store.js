@@ -249,6 +249,10 @@ export function getDefaultParams(type) {
     return { height: 0.8, length: 2.0, topSize: 1.2 };
   }
 
+  if (type === 'flatHip') {
+    return { height: 0.8, length: 2.0, topSize: 0, degrees: 90 };
+  }
+
   if (type === 'rail') {
     return { height: 0.7, length: 3.0, railRadius: 0.05 };
   }

@@ -11,6 +11,7 @@ import { createRail } from './rail.js';
 import { createStairs } from './stairs.js';
 import { createSkater } from './skater.js';
 import { createBoob } from './boob.js';
+import { createFlatHip } from './flatHip.js';
 
 export const catalog = {
   box: {
@@ -68,6 +69,10 @@ export const catalog = {
   boob: {
     label: 'Boob',
     createMesh: createBoob,
+  },
+  flatHip: {
+    label: 'Flat Hip',
+    createMesh: createFlatHip,
   },
 };
 
