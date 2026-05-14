@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="sl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Navodila · Zgosa DIY Konfigurator</title>
+    <style>
+      :root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; background: #0f172a; color: #e2e8f0; }
+      body { margin: 0; line-height: 1.6; }
+      main { max-width: 860px; margin: 0 auto; padding: 28px 18px 48px; }
+      h1, h2 { color: #f8fafc; line-height: 1.2; }
+      h1 { margin-top: 0; }
+      a { color: #93c5fd; }
+      section { margin: 28px 0; padding: 18px; border: 1px solid rgba(148, 163, 184, 0.22); border-radius: 14px; background: rgba(15, 23, 42, 0.72); }
+      code, kbd { padding: 2px 6px; border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 5px; background: #1e293b; color: #e2e8f0; }
+      ul { padding-left: 22px; }
+      .back { display: inline-block; margin-bottom: 20px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="back" href="/">← Nazaj na konfigurator</a>
+      <h1>Zgosa DIY Konfigurator — navodila</h1>
+      <p>To je preprost 3D konfigurator za sestavljanje skate parka iz pripravljenih objektov.</p>
+
+      <section>
+        <h2>Osnovni princip</h2>
+        <ul>
+          <li><strong>Warehouse</strong> je levi panel z objekti, ki jih lahko dodaš.</li>
+          <li><strong>Scene</strong> je desni panel z objekti in grupami, ki si jih dodal v sceno.</li>
+          <li>Ko dodaš objekt, se odpre okno z lastnostmi. Potrdiš z <strong>Confirm</strong> ali tipko <kbd>Enter</kbd>.</li>
+          <li>Po potrditvi se objekt premika ali rotira z gizmo orodjem.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Desktop uporaba</h2>
+        <ul>
+          <li>Srednji gumb miške: orbit kamera.</li>
+          <li>Desni gumb miške: pan kamera.</li>
+          <li>Kolešček: zoom.</li>
+          <li><kbd>Space</kbd>: premik objekta.</li>
+          <li><kbd>R</kbd>: rotacija objekta.</li>
+          <li><kbd>M</kbd>: merjenje razdalje.</li>
+          <li><kbd>Delete</kbd> ali <kbd>Backspace</kbd>: izbriši izbrano.</li>
+          <li><kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>D</kbd>: podvoji objekt.</li>
+          <li><kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>G</kbd>: grupiraj izbrane objekte.</li>
+          <li><kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>G</kbd>: razgrupiraj.</li>
+          <li><kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>Z</kbd>: undo.</li>
+          <li><kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>Y</kbd>: redo.</li>
+          <li>Dvojni klik na objekt odpre lastnosti.</li>
+          <li>Dvojni klik na ime grupe v Scene panelu preimenuje grupo.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Mobile uporaba</h2>
+        <ul>
+          <li>En prst: obračanje kamere.</li>
+          <li>Dva prsta skupaj/narazen: zoom.</li>
+          <li>Dva prsta premik: pan.</li>
+          <li>Potegni levi ročaj za <strong>Warehouse</strong>.</li>
+          <li>Potegni desni ročaj za <strong>Scene</strong>.</li>
+          <li>Dolg pritisk na prazno površino odpre Warehouse.</li>
+          <li>Dolg pritisk na objekt izbere objekt in odpre lastnosti.</li>
+          <li>Tap na prazno površino odznači objekt.</li>
+          <li>Dolg pritisk na grupo v Scene panelu preimenuje grupo.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Dodajanje objektov</h2>
+        <ul>
+          <li>Odpri <strong>Warehouse</strong>.</li>
+          <li>Izberi objekt.</li>
+          <li>Objekt bo lebdel pri miški/prstu.</li>
+          <li>Klikni ali tapni mesto, kamor ga želiš postaviti.</li>
+          <li>Če klikneš na obstoječo površino, se objekt postavi na to površino.</li>
+          <li>Na poševnih ravnih površinah se objekt poravna s površino.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Base park: zgosa.json</h2>
+        <ul>
+          <li>Ob zagonu se samodejno naloži <code>zgosa.json</code>.</li>
+          <li>Privzeto je base park zaklenjen: ni ga mogoče izbrati ali urejati.</li>
+          <li>Base park ni prikazan v Scene panelu, dokler ni vključen <strong>Edit Base</strong>.</li>
+          <li>Če vklopiš <strong>Edit Base</strong>, lahko urejaš tudi base objekte.</li>
+          <li>Spremembe v browserju ne spremenijo originalne datoteke <code>zgosa.json</code> na strežniku.</li>
+          <li>Ko klikneš <strong>Save</strong>, preneseš nov JSON z vsemi trenutnimi spremembami.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Clear, Save, Load</h2>
+        <ul>
+          <li><strong>Clear</strong> izbriše samo novo dodane objekte. Base park ostane.</li>
+          <li><strong>Save</strong> prenese trenutno sceno kot JSON datoteko.</li>
+          <li><strong>Load</strong> naloži drugo JSON datoteko in zamenja trenutno sceno.</li>
+          <li>Če naložiš nov design, ta postane trenutna scena v browserju.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Grid in merjenje</h2>
+        <ul>
+          <li><strong>Grid</strong> vklopi ali izklopi mrežo na tleh.</li>
+          <li><kbd>M</kbd> ali gumb z ravnilom odpre merilno orodje.</li>
+          <li>Klikni prvo točko, nato drugo točko. Razdalja se pokaže ob miški/prstu.</li>
+        </ul>
+      </section>
+    </main>
+  </body>
+</html>

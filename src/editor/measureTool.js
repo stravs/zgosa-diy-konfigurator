@@ -83,8 +83,13 @@ export function createMeasureTool({ scene, renderer, raycast, setStatus, request
 
     positionTooltip(event);
 
-    if (points.length !== 1) {
+    if (points.length === 0) {
       tooltip.textContent = 'Click first point';
+      return;
+    }
+
+    if (points.length >= 2) {
+      tooltip.textContent = `${getDistance(points[0], points[1]).toFixed(2)}m · click to quit`;
       return;
     }
 
@@ -106,14 +111,20 @@ export function createMeasureTool({ scene, renderer, raycast, setStatus, request
       return;
     }
 
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    if (points.length >= 2) {
+      clear();
+      setStatus('Measure closed');
+      return;
+    }
+
     const hit = raycast.getGroundHit(event);
 
     if (!hit) {
       return;
     }
-
-    event.preventDefault();
-    event.stopImmediatePropagation();
 
     if (points.length === 0) {
       points.push(hit.point.clone());
@@ -129,8 +140,8 @@ export function createMeasureTool({ scene, renderer, raycast, setStatus, request
       points.push(hit.point.clone());
       setLine(points[0], points[1]);
       const distance = getDistance(points[0], points[1]).toFixed(2);
-      setTooltip(event, `${distance}m`);
-      setStatus(`Distance: ${distance}m`);
+      setTooltip(event, `${distance}m · click to quit`);
+      setStatus(`Distance: ${distance}m. Click to quit measure.`);
     }
   }
 

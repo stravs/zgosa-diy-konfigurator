@@ -13,7 +13,7 @@ export function createScene(app) {
   scene.fog = new THREE.Fog(0x87b8e6, 35, 90);
 
   const camera = new THREE.PerspectiveCamera(60, app.clientWidth / app.clientHeight, 0.1, 300);
-  camera.position.set(12, 12, 12);
+  camera.position.set(18, 12, 6);
 
   const ambientLight = new THREE.AmbientLight(0xffffff, 1.6);
   scene.add(ambientLight);
