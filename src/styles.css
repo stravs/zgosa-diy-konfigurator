@@ -524,6 +524,18 @@ body.show-right-panel .drawer-handle-right {
   outline: none;
 }
 
+.object-actions button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: none) {
+  .object-actions button:hover,
+  .object-actions button:active,
+  .object-actions button:focus {
+    background: #1e293b;
+  }
+}
+
 .object-actions button:disabled {
   opacity: 0.35;
   cursor: not-allowed;

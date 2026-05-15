@@ -28,13 +28,6 @@ export function createDragging({
   onLongPressObject,
   onDoubleClickObject,
 }) {
-  const marker = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.18, 0.18, 0.05, 24),
-    new THREE.MeshStandardMaterial({ color: 0xf97316 })
-  );
-  marker.position.y = 0.025;
-  marker.visible = false;
-  scene.add(marker);
 
   const marquee = document.createElement('div');
   marquee.className = 'marquee-select';
@@ -77,7 +70,6 @@ export function createDragging({
 
   function updateGroundMarker(hit) {
     if (!hit) {
-      marker.visible = false;
       setStatus('Ground hit: —');
       return;
     }
@@ -90,9 +82,6 @@ export function createDragging({
 
     const snappedX = snapToGrid(hit.point.x);
     const snappedZ = snapToGrid(hit.point.z);
-    marker.visible = true;
-    marker.position.set(snappedX, 0.025, snappedZ);
-
     if (!getSelectedId()) {
       setStatus(`Ground hit: x ${snappedX.toFixed(2)}, z ${snappedZ.toFixed(2)}`);
     }
