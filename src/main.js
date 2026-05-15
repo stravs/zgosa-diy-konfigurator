@@ -465,8 +465,22 @@ function selectGroup(groupId) {
 function groupSelected() {
   const selectedIds = selection.getSelectedIds();
 
+  if (selectedGroupId) {
+    ungroupSelected();
+    return;
+  }
+
   if (selectedIds.length < 2) {
     status.textContent = 'Select at least 2 objects to group';
+    return;
+  }
+
+  const selectedKey = [...selectedIds].sort().join('\0');
+  const existingGroup = state.groups.find((group) => [...group.objectIds].sort().join('\0') === selectedKey);
+
+  if (existingGroup) {
+    selectGroup(existingGroup.id);
+    ungroupSelected();
     return;
   }
 
@@ -661,7 +675,7 @@ dragging = createDragging({
   onBeforeChange: () => history.record(),
   canDragObject: () => activeTool === 'move',
   canRotateObject: () => activeTool === 'rotate',
-  canToggleSelect: () => activeTool === 'select',
+  canToggleSelect: () => false,
   onObjectDragEnd: enableCameraControls,
   updateProperties: () => {
     syncCameraAnchoredUi();
@@ -681,7 +695,20 @@ dragging = createDragging({
   onLongPressEmpty: () => drawers?.openObjectsDrawer(),
   onSceneTap: () => drawers?.closeMobileDrawers(),
   onLongPressObject: (objectId) => {
-    selectObject(objectId, { editGroupItem: true });
+    const group = getGroupForObject(objectId);
+
+    if (group && !isGroupLocked(group.id)) {
+      selectGroup(group.id);
+      return;
+    }
+
+    const selectedIds = selection.getSelectedIds();
+    const shouldAddToSelection = selectedIds.length > 0 && !selectedIds.includes(objectId) && !selectedGroupId;
+
+    selectObject(objectId, {
+      editGroupItem: true,
+      toggle: shouldAddToSelection,
+    });
   },
   onDoubleClickObject: (objectId) => {
     selectObject(objectId, { editGroupItem: true });
@@ -772,7 +799,6 @@ createMobileToolbar({
   closeMobileDrawers,
   selectObject,
   measureTool,
-  setSelectTool,
   undoAction,
   redoAction,
 });

@@ -45,6 +45,7 @@ export function createDragging({
   let dragOffset = { x: 0, z: 0 };
   let dragStartPoint = null;
   let dragYaw = 0;
+  let dragSnapshots = [];
   let hasRecordedDragChange = false;
   let isRotatingObject = false;
   let rotateStartPoint = null;
@@ -106,6 +107,7 @@ export function createDragging({
     isDraggingObject = false;
     dragObjectId = null;
     dragStartPoint = null;
+    dragSnapshots = [];
     hasRecordedDragChange = false;
   }
 
@@ -390,19 +392,48 @@ export function createDragging({
     const nextX = moveHit.point.x + dragOffset.x;
     const nextZ = moveHit.point.z + dragOffset.z;
     const nextY = moveHit.point.y;
-    const nextRotation = getSurfaceRotation(moveHit.normal, dragYaw);
+    const anchorSnapshot = dragSnapshots.find((snapshot) => snapshot.id === dragObjectId);
+    const delta = anchorSnapshot
+      ? new THREE.Vector3(
+        nextX - anchorSnapshot.position.x,
+        nextY - anchorSnapshot.position.y,
+        nextZ - anchorSnapshot.position.z
+      )
+      : new THREE.Vector3();
 
-    object.position.x = nextX;
-    object.position.y = nextY;
-    object.position.z = nextZ;
-    object.rotation.x = nextRotation.x;
-    object.rotation.y = nextRotation.y;
-    object.rotation.z = nextRotation.z;
-    selectedMesh.position.set(nextX, nextY, nextZ);
-    selectedMesh.rotation.copy(nextRotation);
+    if (dragSnapshots.length > 1) {
+      for (const snapshot of dragSnapshots) {
+        const snapshotObject = getObjectById(snapshot.id);
+        const snapshotMesh = objectMeshes.get(snapshot.id);
+
+        if (!snapshotObject || !snapshotMesh) {
+          continue;
+        }
+
+        const nextPosition = snapshot.position.clone().add(delta);
+        snapshotObject.position.x = nextPosition.x;
+        snapshotObject.position.y = nextPosition.y;
+        snapshotObject.position.z = nextPosition.z;
+        snapshotMesh.position.copy(nextPosition);
+      }
+
+      setStatus(`Moving ${dragSnapshots.length} objects`);
+    } else {
+      const nextRotation = getSurfaceRotation(moveHit.normal, dragYaw);
+
+      object.position.x = nextX;
+      object.position.y = nextY;
+      object.position.z = nextZ;
+      object.rotation.x = nextRotation.x;
+      object.rotation.y = nextRotation.y;
+      object.rotation.z = nextRotation.z;
+      selectedMesh.position.set(nextX, nextY, nextZ);
+      selectedMesh.rotation.copy(nextRotation);
+      setStatus(`Moving ${object.id}: x ${nextX.toFixed(2)}, z ${nextZ.toFixed(2)}`);
+    }
+
     selection.updateSelectedMeshBounds();
     updateProperties();
-    setStatus(`Moving ${object.id}: x ${nextX.toFixed(2)}, z ${nextZ.toFixed(2)}`);
   }
 
   function startObjectRotate(event) {
@@ -455,6 +486,17 @@ export function createDragging({
       x: object.position.x - moveHit.point.x,
       z: object.position.z - moveHit.point.z,
     };
+    dragSnapshots = selection.getSelectedIds().map((id) => {
+      const selectedObject = getObjectById(id);
+      return selectedObject ? {
+        id,
+        position: new THREE.Vector3(
+          selectedObject.position.x,
+          selectedObject.position.y,
+          selectedObject.position.z
+        ),
+      } : null;
+    }).filter(Boolean);
     return true;
   }
 
@@ -540,7 +582,7 @@ export function createDragging({
         return;
       }
 
-      if (selectedIds.length === 1 && selectedIds.includes(objectId) && canDragObject()) {
+      if (selectedIds.includes(objectId) && canDragObject()) {
         cancelLongPress();
         startObjectDrag(event, object);
         return;
@@ -562,10 +604,20 @@ export function createDragging({
     }
 
     consumeEvent(event);
-    selectObject(objectId, {
-      toggle: event.shiftKey,
-      editGroupItem: event.detail >= 2,
-    });
+
+    const selectedIdsBeforeClick = selection.getSelectedIds();
+    const clickedSelectedObject = selectedIdsBeforeClick.includes(objectId);
+    const shouldUseExistingSelection = clickedSelectedObject
+      && !event.shiftKey
+      && event.detail < 2
+      && (canDragObject() || canRotateObject());
+
+    if (!shouldUseExistingSelection) {
+      selectObject(objectId, {
+        toggle: event.shiftKey,
+        editGroupItem: event.detail >= 2,
+      });
+    }
 
     const selectedIds = selection.getSelectedIds();
 
@@ -578,7 +630,7 @@ export function createDragging({
       return;
     }
 
-    if (selectedIds.length > 1 || !canDragObject()) {
+    if (!canDragObject()) {
       return;
     }
 

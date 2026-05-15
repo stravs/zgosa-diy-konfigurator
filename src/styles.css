@@ -431,7 +431,7 @@ body.show-right-panel .drawer-handle-right {
   position: fixed;
   left: 0;
   top: 0;
-  z-index: 80;
+  z-index: 25;
   display: flex;
   gap: 6px;
   padding: 6px;

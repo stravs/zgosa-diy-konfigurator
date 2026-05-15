@@ -2,19 +2,12 @@ export function createMobileToolbar({
   closeMobileDrawers,
   selectObject,
   measureTool,
-  setSelectTool,
   undoAction,
   redoAction,
 }) {
-  setMobileToolLabel('mobile-select', '☑', 'Select');
   setMobileToolLabel('mobile-measure', '📏', 'Measure');
   setMobileToolLabel('mobile-undo', '←', 'Undo');
   setMobileToolLabel('mobile-redo', '→', 'Redo');
-
-  document.getElementById('mobile-select').addEventListener('click', () => {
-    closeMobileDrawers();
-    setSelectTool();
-  });
 
   document.getElementById('mobile-measure').addEventListener('click', () => {
     closeMobileDrawers();

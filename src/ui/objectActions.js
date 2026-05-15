@@ -166,7 +166,7 @@ export function createObjectActions({
 
     if (selectionKey !== lastSelectionKey) {
       lastSelectionKey = selectionKey;
-      setExpanded(false);
+      setExpanded(selectedIds.length > 1 && !selectedGroupId);
     }
 
     const point = getScreenPoint({ camera, renderer, objectMeshes, selectedIds });
@@ -181,11 +181,11 @@ export function createObjectActions({
       : null;
     const isMulti = selectedIds.length > 1;
 
-    moveButton.hidden = isMulti;
-    rotateButton.hidden = isMulti;
+    moveButton.hidden = false;
+    rotateButton.hidden = false;
     scaleButton.hidden = isMulti || !object || object.type !== 'box';
     propertiesButton.hidden = isMulti || !object;
-    deleteButton.hidden = isMulti;
+    deleteButton.hidden = false;
     groupButton.hidden = !isMulti;
     const groupLabel = selectedGroupId ? 'Ungroup' : 'Group';
     setButtonContent(groupButton, '⧉', groupLabel);
