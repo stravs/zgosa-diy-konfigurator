@@ -3,12 +3,11 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { catalog } from './catalog/index.js';
 import { preventBrowserZoom } from './core/browserZoom.js';
 import {
-  COARSE_POINTER_QUERY,
-  COMPACT_LAYOUT_QUERY,
   getDevicePixelRatioCap,
   hasCoarsePointer,
   isCompactLayout,
 } from './core/performance.js';
+import { createResponsiveController } from './app/responsiveController.js';
 import { createRaycaster } from './core/raycast.js';
 import { createScene } from './core/scene.js';
 import { createDragging } from './editor/dragging.js';
@@ -41,6 +40,13 @@ import {
   state,
 } from './state/store.js';
 
+const CAMERA_MAX_POLAR_ANGLE = Math.PI * 0.48;
+const CAMERA_MIN_DISTANCE = 4;
+const CAMERA_MAX_DISTANCE = 80;
+const TOUCH_DOUBLE_TAP_MS = 300;
+const TOUCH_DOUBLE_TAP_PX = 28;
+const TOUCH_DOUBLE_TAP_ZOOM_LERP = 0.3;
+
 preventBrowserZoom();
 
 const app = document.getElementById('app');
@@ -64,9 +70,9 @@ const {
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = false;
 controls.target.set(0, 0, 0);
-controls.maxPolarAngle = Math.PI * 0.48;
-controls.minDistance = 4;
-controls.maxDistance = 80;
+controls.maxPolarAngle = CAMERA_MAX_POLAR_ANGLE;
+controls.minDistance = CAMERA_MIN_DISTANCE;
+controls.maxDistance = CAMERA_MAX_DISTANCE;
 controls.enablePan = true;
 controls.enableZoom = true;
 controls.screenSpacePanning = false;
@@ -86,15 +92,6 @@ renderer.domElement.addEventListener('contextmenu', (event) => {
   event.preventDefault();
 });
 
-function updateControlProfile() {
-  controls.minDistance = hasCoarsePointer() ? 1.2 : 4;
-  controls.panSpeed = hasCoarsePointer() ? 0.8 : 1;
-  controls.zoomSpeed = hasCoarsePointer() ? 0.7 : 1;
-  controls.rotateSpeed = hasCoarsePointer() ? 0.75 : 1;
-}
-
-updateControlProfile();
-
 let lastTouchTap = null;
 
 renderer.domElement.addEventListener('pointerup', (event) => {
@@ -105,8 +102,8 @@ renderer.domElement.addEventListener('pointerup', (event) => {
   const now = window.performance.now();
   const tap = { time: now, x: event.clientX, y: event.clientY };
   const isDoubleTap = lastTouchTap
-    && now - lastTouchTap.time < 300
-    && Math.hypot(event.clientX - lastTouchTap.x, event.clientY - lastTouchTap.y) < 28;
+    && now - lastTouchTap.time < TOUCH_DOUBLE_TAP_MS
+    && Math.hypot(event.clientX - lastTouchTap.x, event.clientY - lastTouchTap.y) < TOUCH_DOUBLE_TAP_PX;
 
   lastTouchTap = tap;
 
@@ -115,7 +112,7 @@ renderer.domElement.addEventListener('pointerup', (event) => {
   }
 
   event.preventDefault();
-  const nextPosition = camera.position.clone().lerp(controls.target, 0.3);
+  const nextPosition = camera.position.clone().lerp(controls.target, TOUCH_DOUBLE_TAP_ZOOM_LERP);
 
   if (nextPosition.distanceTo(controls.target) >= controls.minDistance) {
     camera.position.copy(nextPosition);
@@ -295,7 +292,7 @@ scaleHandles = createScaleHandles({
   requestRender,
 });
 
-function applyCameraForTool() {
+function enableCameraControls() {
   controls.enabled = true;
 }
 
@@ -303,35 +300,39 @@ function setSelectTool() {
   activeTool = 'select';
   scaleHandles?.hide();
   selection.setTransformEnabled(false);
-  applyCameraForTool();
+  enableCameraControls();
   status.textContent = 'Select tool active: tap objects';
 }
 
 function setMoveTool() {
+  const useTouchTools = hasCoarsePointer();
+
   activeTool = 'move';
   objectActions?.setActiveIcon('↔');
   scaleHandles?.hide();
-  selection.setTransformEnabled(!hasCoarsePointer());
+  selection.setTransformEnabled(!useTouchTools);
 
-  if (!hasCoarsePointer()) {
+  if (!useTouchTools) {
     selection.setTransformMode('translate');
   }
 
-  applyCameraForTool();
-  status.textContent = hasCoarsePointer() ? 'Move tool active: drag selected object' : 'Move tool active';
+  enableCameraControls();
+  status.textContent = useTouchTools ? 'Move tool active: drag selected object' : 'Move tool active';
 }
 
 function setRotateTool() {
+  const useTouchTools = hasCoarsePointer();
+
   activeTool = 'rotate';
   objectActions?.setActiveIcon('⟳');
   scaleHandles?.hide();
-  selection.setTransformEnabled(!hasCoarsePointer());
+  selection.setTransformEnabled(!useTouchTools);
 
-  if (!hasCoarsePointer()) {
+  if (!useTouchTools) {
     selection.setTransformMode('rotate');
   }
 
-  applyCameraForTool();
+  enableCameraControls();
 }
 
 function setScaleTool() {
@@ -339,7 +340,7 @@ function setScaleTool() {
   objectActions?.setActiveIcon('⬚');
   selection.setTransformEnabled(false);
   scaleHandles?.setEnabled(true);
-  applyCameraForTool();
+  enableCameraControls();
 
   const selectedIds = selection.getSelectedIds();
   const object = selectedIds.length === 1 ? getObjectById(selectedIds[0]) : null;
@@ -507,15 +508,17 @@ function toggleObjectLocked(objectId) {
     return;
   }
 
+  const nextLocked = !object.locked;
+
   history.record();
-  setObjectLocked(objectId, !object.locked);
+  setObjectLocked(objectId, nextLocked);
 
   if (isObjectLocked(objectId) && selection.getSelectedIds().includes(objectId)) {
     selectObject(null);
   }
 
   sceneObjectsPanel.update();
-  status.textContent = object.locked ? `Locked ${object.id}` : `Unlocked ${object.id}`;
+  status.textContent = nextLocked ? `Locked ${object.id}` : `Unlocked ${object.id}`;
 }
 
 function toggleGroupLocked(groupId) {
@@ -525,15 +528,17 @@ function toggleGroupLocked(groupId) {
     return;
   }
 
+  const nextLocked = !group.locked;
+
   history.record();
-  setGroupLocked(groupId, !group.locked);
+  setGroupLocked(groupId, nextLocked);
 
   if (isGroupLocked(groupId) && selectedGroupId === groupId) {
     selectObject(null);
   }
 
   sceneObjectsPanel.update();
-  status.textContent = group.locked ? `Locked ${group.name}` : `Unlocked ${group.name}`;
+  status.textContent = nextLocked ? `Locked ${group.name}` : `Unlocked ${group.name}`;
 }
 
 function clearNewSceneObjects() {
@@ -658,7 +663,7 @@ dragging = createDragging({
   canDragObject: () => activeTool === 'move' && hasCoarsePointer(),
   canRotateObject: () => activeTool === 'rotate' && hasCoarsePointer(),
   canToggleSelect: () => activeTool === 'select' && hasCoarsePointer(),
-  onObjectDragEnd: applyCameraForTool,
+  onObjectDragEnd: enableCameraControls,
   updateProperties: requestRender,
   setStatus: (message) => {
     status.textContent = message;
@@ -812,39 +817,21 @@ async function loadInitialScene() {
 sceneObjectsPanel.update();
 loadInitialScene();
 
-function onResize() {
-  camera.aspect = app.clientWidth / app.clientHeight;
-  camera.updateProjectionMatrix();
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, getDevicePixelRatioCap()));
-  renderer.setSize(app.clientWidth, app.clientHeight);
-  requestRender();
-}
+createResponsiveController({
+  app,
+  camera,
+  renderer,
+  controls,
+  drawers,
+  getDevicePixelRatioCap,
+  hasCoarsePointer,
+  isCompactLayout,
+  onToolModeChange: () => {
+    updateActiveTool();
+    enableCameraControls();
+  },
+  onDesktopLayout: () => topMenuPanel?.close(),
+  requestRender,
+});
 
-function updateResponsiveMode() {
-  updateControlProfile();
-  updateActiveTool();
-  applyCameraForTool();
-  drawers?.syncLayoutMode();
-
-  if (!isCompactLayout()) {
-    topMenuPanel?.close();
-  }
-
-  onResize();
-}
-
-function addMediaChangeListener(query, handler) {
-  const mediaQueryList = window.matchMedia(query);
-
-  if (mediaQueryList.addEventListener) {
-    mediaQueryList.addEventListener('change', handler);
-  } else {
-    mediaQueryList.addListener(handler);
-  }
-}
-
-window.addEventListener('resize', onResize);
-addMediaChangeListener(COMPACT_LAYOUT_QUERY, updateResponsiveMode);
-addMediaChangeListener(COARSE_POINTER_QUERY, updateResponsiveMode);
-updateResponsiveMode();
 requestRender();
