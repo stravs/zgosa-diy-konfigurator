@@ -298,24 +298,33 @@ scaleHandles = createScaleHandles({
 });
 
 function applyCameraForTool() {
-  controls.enabled = !(activeTool === 'move' && isMobileQuality());
+  controls.enabled = !((activeTool === 'move' || activeTool === 'rotate') && isMobileQuality());
 }
 
 function setMoveTool() {
   activeTool = 'move';
   objectActions?.setActiveIcon('↔');
   scaleHandles?.hide();
-  selection.setTransformEnabled(false);
+  selection.setTransformEnabled(!isMobileQuality());
+
+  if (!isMobileQuality()) {
+    selection.setTransformMode('translate');
+  }
+
   applyCameraForTool();
-  status.textContent = 'Move tool active: drag object';
+  status.textContent = isMobileQuality() ? 'Move tool active: drag object' : 'Move tool active';
 }
 
 function setRotateTool() {
   activeTool = 'rotate';
   objectActions?.setActiveIcon('⟳');
   scaleHandles?.hide();
-  selection.setTransformEnabled(true);
-  selection.setTransformMode('rotate');
+  selection.setTransformEnabled(!isMobileQuality());
+
+  if (!isMobileQuality()) {
+    selection.setTransformMode('rotate');
+  }
+
   applyCameraForTool();
 }
 
@@ -342,12 +351,9 @@ function updateActiveTool() {
   if (activeTool === 'scale') {
     selection.setTransformEnabled(false);
     scaleHandles?.setEnabled(true);
-  } else if (activeTool === 'rotate') {
-    scaleHandles?.hide();
-    selection.setTransformEnabled(true);
   } else {
     scaleHandles?.hide();
-    selection.setTransformEnabled(false);
+    selection.setTransformEnabled(!isMobileQuality());
   }
 }
 
@@ -645,7 +651,8 @@ dragging = createDragging({
   getObjectById,
   snapToGrid,
   onBeforeChange: () => history.record(),
-  canDragObject: () => activeTool === 'move',
+  canDragObject: () => activeTool === 'move' && isMobileQuality(),
+  canRotateObject: () => activeTool === 'rotate' && isMobileQuality(),
   onObjectDragEnd: applyCameraForTool,
   updateProperties: () => {
     propertiesPanel.update();

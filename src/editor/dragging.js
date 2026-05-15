@@ -18,6 +18,7 @@ export function createDragging({
   snapToGrid,
   onBeforeChange,
   canDragObject = () => true,
+  canRotateObject = () => false,
   onObjectDragEnd,
   updateProperties,
   hideContextMenu,
@@ -40,6 +41,9 @@ export function createDragging({
   let dragOffset = { x: 0, z: 0 };
   let dragStartPoint = null;
   let dragYaw = 0;
+  let isRotatingObject = false;
+  let rotateStartPoint = null;
+  let rotateSnapshots = [];
   let marqueeStart = null;
   let marqueeCurrent = null;
   let marqueeAdditive = false;
@@ -178,6 +182,24 @@ export function createDragging({
     touchObjectId = null;
   }
 
+  function getSelectionCenter() {
+    const box = new THREE.Box3();
+    let hasBox = false;
+
+    for (const id of selection.getSelectedIds()) {
+      const mesh = objectMeshes.get(id);
+
+      if (!mesh) {
+        continue;
+      }
+
+      box.union(new THREE.Box3().setFromObject(mesh));
+      hasBox = true;
+    }
+
+    return hasBox ? box.getCenter(new THREE.Vector3()) : new THREE.Vector3();
+  }
+
   function updatePointer(event) {
     if (event.pointerType === 'touch' && activeTouchPointers.size > 1) {
       cancelLongPress();
@@ -198,6 +220,41 @@ export function createDragging({
     const placementHit = raycast.getPlacementHit(event);
     updateGroundMarker(hit);
     onGroundMove?.(placementHit);
+
+    if (isRotatingObject && rotateStartPoint) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation?.();
+
+      const delta = event.clientX - rotateStartPoint.x;
+      const angle = delta * (Math.PI / 180);
+      const center = rotateStartPoint.center;
+
+      for (const snapshot of rotateSnapshots) {
+        const object = getObjectById(snapshot.id);
+        const mesh = objectMeshes.get(snapshot.id);
+
+        if (!object || !mesh) {
+          continue;
+        }
+
+        const offset = snapshot.position.clone().sub(center);
+        offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), angle);
+        const nextPosition = center.clone().add(offset);
+
+        object.position.x = nextPosition.x;
+        object.position.z = nextPosition.z;
+        object.rotation.y = snapshot.rotationY + angle;
+        mesh.position.x = object.position.x;
+        mesh.position.z = object.position.z;
+        mesh.rotation.y = object.rotation.y;
+      }
+
+      selection.updateSelectedMeshBounds();
+      updateProperties();
+      setStatus(`Rotating ${rotateSnapshots.length} object${rotateSnapshots.length === 1 ? '' : 's'}`);
+      return;
+    }
 
     if (marqueeStart) {
       marqueeCurrent = { x: event.clientX, y: event.clientY };
@@ -239,6 +296,38 @@ export function createDragging({
     selection.updateSelectedMeshBounds();
     updateProperties();
     setStatus(`Moving ${object.id}: x ${nextX.toFixed(2)}, z ${nextZ.toFixed(2)}`);
+  }
+
+  function startObjectRotate(event) {
+    const ids = selection.getSelectedIds();
+
+    if (ids.length === 0) {
+      return false;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation?.();
+
+    onBeforeChange?.();
+    controls.enabled = false;
+    isRotatingObject = true;
+    renderer.domElement.setPointerCapture?.(event.pointerId);
+    rotateStartPoint = {
+      x: event.clientX,
+      y: event.clientY,
+      pointerType: event.pointerType,
+      center: getSelectionCenter(),
+    };
+    rotateSnapshots = ids.map((id) => {
+      const object = getObjectById(id);
+      return object ? {
+        id,
+        position: new THREE.Vector3(object.position.x, object.position.y, object.position.z),
+        rotationY: object.rotation.y,
+      } : null;
+    }).filter(Boolean);
+    return true;
   }
 
   function startObjectDrag(event, object) {
@@ -286,6 +375,12 @@ export function createDragging({
     const placementHit = raycast.getPlacementHit(event);
 
     if (onPrimaryClick?.(placementHit)) {
+      return;
+    }
+
+    if (event.pointerType === 'touch' && canRotateObject() && selection.getSelectedIds().length > 0) {
+      cancelLongPress();
+      startObjectRotate(event);
       return;
     }
 
@@ -370,7 +465,16 @@ export function createDragging({
 
     const selectedIds = selection.getSelectedIds();
 
-    if (event.detail >= 2 || event.shiftKey || selectedIds.length > 1 || !selectedIds.includes(objectId) || !canDragObject()) {
+    if (event.detail >= 2 || event.shiftKey || !selectedIds.includes(objectId)) {
+      return;
+    }
+
+    if (canRotateObject()) {
+      startObjectRotate(event);
+      return;
+    }
+
+    if (selectedIds.length > 1 || !canDragObject()) {
       return;
     }
 
@@ -441,6 +545,26 @@ export function createDragging({
       return;
     }
 
+    if (isRotatingObject) {
+      const wasTap = rotateStartPoint
+        && rotateStartPoint.pointerType === 'touch'
+        && Math.hypot(event.clientX - rotateStartPoint.x, event.clientY - rotateStartPoint.y) <= 10;
+
+      isRotatingObject = false;
+      rotateStartPoint = null;
+      rotateSnapshots = [];
+      controls.enabled = true;
+      renderer.domElement.releasePointerCapture?.(event.pointerId);
+      onObjectDragEnd?.();
+
+      if (wasTap && canRotateObject()) {
+        onSceneTap?.();
+        selectObject(null);
+      }
+
+      return;
+    }
+
     if (!isDraggingObject) {
       return;
     }
@@ -471,7 +595,10 @@ export function createDragging({
     getLastGroundHit: () => lastGroundHit,
     stopDragging: () => {
       isDraggingObject = false;
+      isRotatingObject = false;
       dragStartPoint = null;
+      rotateStartPoint = null;
+      rotateSnapshots = [];
       controls.enabled = true;
       marquee.hidden = true;
       marqueeStart = null;

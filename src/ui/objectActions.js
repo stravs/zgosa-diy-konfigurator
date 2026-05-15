@@ -165,7 +165,7 @@ export function createObjectActions({
     scaleButton.title = 'Extend face';
 
     panel.hidden = false;
-    panel.style.transform = `translate(${Math.round(point.x)}px, ${Math.round(point.y - 48)}px) translate(-50%, -100%)`;
+    panel.style.transform = `translate(${Math.round(point.x + 40)}px, ${Math.round(point.y - 48)}px) translate(-50%, -100%)`;
   }
 
   return {
