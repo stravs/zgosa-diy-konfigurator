@@ -1,28 +1,15 @@
 export function createMobileToolbar({
   closeMobileDrawers,
-  setMoveTool,
-  setRotateTool,
   selectObject,
   measureTool,
-  setScaleTool,
+  setSelectTool,
   groupSelected,
   undoAction,
   redoAction,
-  deleteSelected,
 }) {
-  document.getElementById('mobile-move').addEventListener('click', () => {
+  document.getElementById('mobile-select').addEventListener('click', () => {
     closeMobileDrawers();
-    setMoveTool();
-  });
-
-  document.getElementById('mobile-rotate').addEventListener('click', () => {
-    closeMobileDrawers();
-    setRotateTool();
-  });
-
-  document.getElementById('mobile-scale').addEventListener('click', () => {
-    closeMobileDrawers();
-    setScaleTool();
+    setSelectTool();
   });
 
   document.getElementById('mobile-measure').addEventListener('click', () => {
@@ -34,5 +21,4 @@ export function createMobileToolbar({
   document.getElementById('mobile-group').addEventListener('click', groupSelected);
   document.getElementById('mobile-undo').addEventListener('click', undoAction);
   document.getElementById('mobile-redo').addEventListener('click', redoAction);
-  document.getElementById('mobile-delete').addEventListener('click', deleteSelected);
 }

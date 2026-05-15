@@ -19,6 +19,7 @@ export function createDragging({
   onBeforeChange,
   canDragObject = () => true,
   canRotateObject = () => false,
+  canToggleSelect = () => false,
   onObjectDragEnd,
   updateProperties,
   hideContextMenu,
@@ -376,6 +377,22 @@ export function createDragging({
 
     if (onPrimaryClick?.(placementHit)) {
       return;
+    }
+
+    if (event.pointerType === 'touch' && canToggleSelect()) {
+      let objectHit = raycast.getObjectHit(event);
+
+      if (objectHit && isObjectLocked(objectHit.object.userData.objectId)) {
+        objectHit = null;
+      }
+
+      if (objectHit) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation?.();
+        selectObject(objectHit.object.userData.objectId, { toggle: true, editGroupItem: true });
+        return;
+      }
     }
 
     if (event.pointerType === 'touch' && canRotateObject() && selection.getSelectedIds().length > 0) {

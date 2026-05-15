@@ -298,7 +298,15 @@ scaleHandles = createScaleHandles({
 });
 
 function applyCameraForTool() {
-  controls.enabled = !((activeTool === 'move' || activeTool === 'rotate') && isMobileQuality());
+  controls.enabled = !((activeTool === 'move' || activeTool === 'rotate' || activeTool === 'select') && isMobileQuality());
+}
+
+function setSelectTool() {
+  activeTool = 'select';
+  scaleHandles?.hide();
+  selection.setTransformEnabled(false);
+  applyCameraForTool();
+  status.textContent = 'Select tool active: tap objects';
 }
 
 function setMoveTool() {
@@ -653,6 +661,7 @@ dragging = createDragging({
   onBeforeChange: () => history.record(),
   canDragObject: () => activeTool === 'move' && isMobileQuality(),
   canRotateObject: () => activeTool === 'rotate' && isMobileQuality(),
+  canToggleSelect: () => activeTool === 'select' && isMobileQuality(),
   onObjectDragEnd: applyCameraForTool,
   updateProperties: () => {
     propertiesPanel.update();
@@ -765,15 +774,12 @@ topMenuPanel = createTopMenu({
 
 createMobileToolbar({
   closeMobileDrawers,
-  setMoveTool,
-  setRotateTool,
   selectObject,
   measureTool,
-  setScaleTool,
+  setSelectTool,
   groupSelected,
   undoAction,
   redoAction,
-  deleteSelected,
 });
 
 createShortcuts({
