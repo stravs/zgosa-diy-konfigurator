@@ -125,7 +125,6 @@ let renderQueued = false;
 
 function renderScene() {
   renderQueued = false;
-  objectActions?.update();
   renderer.render(scene, camera);
 }
 
@@ -138,7 +137,7 @@ function requestRender() {
   requestAnimationFrame(renderScene);
 }
 
-controls.addEventListener('change', requestRender);
+controls.addEventListener('change', handleCameraChange);
 
 toggleGridInput.checked = false;
 grid.visible = false;
@@ -164,7 +163,6 @@ const history = createHistory({
     selectedObjectId = null;
     selection.select(null);
     renderObjects();
-    sceneObjectsPanel.update();
     status.textContent = 'Restored history';
   },
 });
@@ -216,7 +214,6 @@ propertySheet = createPropertySheet({
   onBeforeChange: () => history.record(),
   onChange: () => {
     renderObjects();
-    requestRender();
   },
   onConfirm: (objectId) => {
     selectObject(objectId, { skipGroupSelect: true });
@@ -261,7 +258,7 @@ const selection = createSelection({
   objectMeshes,
   onTransformStart: () => history.record(),
   onChange: () => {
-    scaleHandles?.update();
+    syncCameraAnchoredUi();
     requestRender();
   },
   setStatus: (message) => {
@@ -384,20 +381,37 @@ objectActions = createObjectActions({
   shouldHide: () => propertySheet.isOpen(),
 });
 
-function renderObjects() {
+function syncSceneObjects() {
   objectRenderer.render();
   selection.updateHelper();
   scaleHandles?.update();
+}
+
+function syncSelectionUi() {
   sceneObjectsPanel.update();
   objectActions?.update();
+}
+
+function syncCameraAnchoredUi() {
+  scaleHandles?.update();
+  objectActions?.update();
+}
+
+function handleCameraChange() {
+  syncCameraAnchoredUi();
+  requestRender();
+}
+
+function renderObjects() {
+  syncSceneObjects();
+  syncSelectionUi();
   requestRender();
 }
 
 function showSelectionStatus(selectedIds) {
   selectedObjectId = selectedIds.length === 1 ? selectedIds[0] : null;
   updateActiveTool();
-  sceneObjectsPanel.update();
-  objectActions?.update();
+  syncSelectionUi();
   requestRender();
 
   if (selectedGroupId) {
@@ -479,7 +493,6 @@ function groupSelected() {
   }
 
   selectGroup(group.id);
-  sceneObjectsPanel.update();
   status.textContent = `Created ${group.name}`;
 }
 
@@ -497,7 +510,7 @@ function renameGroup(groupId, name) {
     return;
   }
 
-  sceneObjectsPanel.update();
+  syncSelectionUi();
   status.textContent = `Renamed group: ${group.name}`;
 }
 
@@ -517,7 +530,7 @@ function toggleObjectLocked(objectId) {
     selectObject(null);
   }
 
-  sceneObjectsPanel.update();
+  syncSelectionUi();
   status.textContent = nextLocked ? `Locked ${object.id}` : `Unlocked ${object.id}`;
 }
 
@@ -537,7 +550,7 @@ function toggleGroupLocked(groupId) {
     selectObject(null);
   }
 
-  sceneObjectsPanel.update();
+  syncSelectionUi();
   status.textContent = nextLocked ? `Locked ${group.name}` : `Unlocked ${group.name}`;
 }
 
@@ -578,7 +591,7 @@ function ungroupSelected() {
   history.record();
   const group = removeGroup(selectedGroupId);
   selectedGroupId = null;
-  sceneObjectsPanel.update();
+  syncSelectionUi();
   status.textContent = group ? `Ungrouped ${group.name}` : 'Group not found';
 }
 
@@ -664,7 +677,10 @@ dragging = createDragging({
   canRotateObject: () => activeTool === 'rotate' && hasCoarsePointer(),
   canToggleSelect: () => activeTool === 'select' && hasCoarsePointer(),
   onObjectDragEnd: enableCameraControls,
-  updateProperties: requestRender,
+  updateProperties: () => {
+    syncCameraAnchoredUi();
+    requestRender();
+  },
   setStatus: (message) => {
     status.textContent = message;
   },
@@ -721,7 +737,7 @@ function setBaseEditing(enabled) {
     selectObject(null);
   }
 
-  sceneObjectsPanel.update();
+  syncSelectionUi();
   status.textContent = canEditBase ? 'Base editing enabled' : 'Base editing disabled';
 }
 
@@ -806,7 +822,6 @@ async function loadInitialScene() {
     initialGroupIds = new Set(state.groups.map((group) => group.id));
     selectObject(null);
     renderObjects();
-    sceneObjectsPanel.update();
     status.textContent = `Loaded zgosa.json (${state.objects.length} objects)`;
   } catch (error) {
     console.error(error);
@@ -814,7 +829,7 @@ async function loadInitialScene() {
   }
 }
 
-sceneObjectsPanel.update();
+syncSelectionUi();
 loadInitialScene();
 
 createResponsiveController({
@@ -830,6 +845,7 @@ createResponsiveController({
     updateActiveTool();
     enableCameraControls();
   },
+  onCameraChange: syncCameraAnchoredUi,
   onDesktopLayout: () => topMenuPanel?.close(),
   requestRender,
 });

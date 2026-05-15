@@ -13,6 +13,7 @@ export function createResponsiveController({
   hasCoarsePointer,
   isCompactLayout,
   onToolModeChange,
+  onCameraChange,
   onDesktopLayout,
   requestRender,
 }) {
@@ -29,6 +30,7 @@ export function createResponsiveController({
     camera.updateProjectionMatrix();
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, getDevicePixelRatioCap()));
     renderer.setSize(app.clientWidth, app.clientHeight);
+    onCameraChange?.();
     requestRender();
   }
 
