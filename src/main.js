@@ -298,37 +298,23 @@ function setSelectTool() {
   scaleHandles?.hide();
   selection.setTransformEnabled(false);
   enableCameraControls();
-  status.textContent = 'Select tool active: tap objects';
+  status.textContent = 'Select tool active: click or tap objects';
 }
 
 function setMoveTool() {
-  const useTouchTools = hasCoarsePointer();
-
   activeTool = 'move';
   objectActions?.setActiveIcon('↔');
   scaleHandles?.hide();
-  selection.setTransformEnabled(!useTouchTools);
-
-  if (!useTouchTools) {
-    selection.setTransformMode('translate');
-  }
-
+  selection.setTransformEnabled(false);
   enableCameraControls();
-  status.textContent = useTouchTools ? 'Move tool active: drag selected object' : 'Move tool active';
+  status.textContent = 'Move tool active: drag selected object';
 }
 
 function setRotateTool() {
-  const useTouchTools = hasCoarsePointer();
-
   activeTool = 'rotate';
   objectActions?.setActiveIcon('⟳');
   scaleHandles?.hide();
-  selection.setTransformEnabled(!useTouchTools);
-
-  if (!useTouchTools) {
-    selection.setTransformMode('rotate');
-  }
-
+  selection.setTransformEnabled(false);
   enableCameraControls();
 }
 
@@ -357,7 +343,7 @@ function updateActiveTool() {
     scaleHandles?.setEnabled(true);
   } else {
     scaleHandles?.hide();
-    selection.setTransformEnabled(!hasCoarsePointer());
+    selection.setTransformEnabled(false);
   }
 }
 
@@ -673,9 +659,9 @@ dragging = createDragging({
   getObjectById,
   snapToGrid,
   onBeforeChange: () => history.record(),
-  canDragObject: () => activeTool === 'move' && hasCoarsePointer(),
-  canRotateObject: () => activeTool === 'rotate' && hasCoarsePointer(),
-  canToggleSelect: () => activeTool === 'select' && hasCoarsePointer(),
+  canDragObject: () => activeTool === 'move',
+  canRotateObject: () => activeTool === 'rotate',
+  canToggleSelect: () => activeTool === 'select',
   onObjectDragEnd: enableCameraControls,
   updateProperties: () => {
     syncCameraAnchoredUi();

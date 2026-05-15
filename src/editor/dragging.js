@@ -480,7 +480,7 @@ export function createDragging({
       return;
     }
 
-    if (event.pointerType === 'touch' && canToggleSelect()) {
+    if (canToggleSelect()) {
       let objectHit = raycast.getObjectHit(event);
 
       if (objectHit && isObjectLocked(objectHit.object.userData.objectId)) {
