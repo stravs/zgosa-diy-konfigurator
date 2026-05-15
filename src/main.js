@@ -81,6 +81,35 @@ renderer.domElement.addEventListener('contextmenu', (event) => {
   event.preventDefault();
 });
 
+let lastTouchTap = null;
+
+renderer.domElement.addEventListener('pointerup', (event) => {
+  if (event.pointerType !== 'touch') {
+    return;
+  }
+
+  const now = window.performance.now();
+  const tap = { time: now, x: event.clientX, y: event.clientY };
+  const isDoubleTap = lastTouchTap
+    && now - lastTouchTap.time < 300
+    && Math.hypot(event.clientX - lastTouchTap.x, event.clientY - lastTouchTap.y) < 28;
+
+  lastTouchTap = tap;
+
+  if (!isDoubleTap) {
+    return;
+  }
+
+  event.preventDefault();
+  const nextPosition = camera.position.clone().lerp(controls.target, 0.3);
+
+  if (nextPosition.distanceTo(controls.target) >= controls.minDistance) {
+    camera.position.copy(nextPosition);
+    controls.update();
+    requestRender();
+  }
+});
+
 let renderQueued = false;
 
 function renderScene() {
