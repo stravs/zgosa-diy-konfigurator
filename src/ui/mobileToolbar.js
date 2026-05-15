@@ -4,6 +4,8 @@ export function createMobileToolbar({
   measureTool,
   setSelectTool,
   groupSelected,
+  ungroupSelected,
+  hasSelectedGroup,
   undoAction,
   redoAction,
 }) {
@@ -24,7 +26,13 @@ export function createMobileToolbar({
     measureTool.activate();
   });
 
-  document.getElementById('mobile-group').addEventListener('click', groupSelected);
+  document.getElementById('mobile-group').addEventListener('click', () => {
+    if (hasSelectedGroup?.()) {
+      ungroupSelected();
+    } else {
+      groupSelected();
+    }
+  });
   document.getElementById('mobile-undo').addEventListener('click', undoAction);
   document.getElementById('mobile-redo').addEventListener('click', redoAction);
 }

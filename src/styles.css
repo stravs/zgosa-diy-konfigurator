@@ -824,26 +824,60 @@ body.show-right-panel .drawer-handle-right {
   }
 
   .app-shell {
-    grid-template-rows: 48px 1fr 58px;
+    grid-template-rows: 32px 1fr 58px;
   }
 
   .topbar {
-    grid-template-columns: auto 1fr;
-    gap: 8px;
-    padding: 0 10px;
+    position: relative;
+    z-index: 70;
+    display: flex;
+    justify-content: center;
+    padding: 0;
+    cursor: pointer;
   }
 
   .topbar h1 {
+    width: 100%;
+    padding: 9px 10px;
     font-size: 11px;
+    text-align: center;
+  }
+
+  .topbar h1::after {
+    content: ' ▾';
+    color: #94a3b8;
+  }
+
+  body.show-top-drawer .topbar h1::after {
+    content: ' ▴';
   }
 
   .top-menu-toggle {
-    display: block;
-    justify-self: end;
+    display: none;
   }
 
   .topbar-actions {
     display: none;
+  }
+
+  .top-menu {
+    position: fixed;
+    top: 32px;
+    left: 0;
+    right: 0;
+    z-index: 65;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    min-width: 0;
+    padding: 10px;
+    border-radius: 0 0 14px 14px;
+    transform: translateY(-120%);
+    transition: transform 160ms ease;
+  }
+
+  body.show-top-drawer .top-menu {
+    transform: translateY(0);
   }
 
   .topbar-toggle {
@@ -862,7 +896,7 @@ body.show-right-panel .drawer-handle-right {
   .left-panel,
   .right-panel {
     position: fixed;
-    top: 48px;
+    top: 32px;
     bottom: 58px;
     max-width: 86vw;
   }

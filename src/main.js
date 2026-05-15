@@ -778,6 +778,8 @@ createMobileToolbar({
   measureTool,
   setSelectTool,
   groupSelected,
+  ungroupSelected,
+  hasSelectedGroup: () => Boolean(selectedGroupId),
   undoAction,
   redoAction,
 });
