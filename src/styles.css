@@ -536,6 +536,14 @@ body.show-right-panel .drawer-handle-right {
   }
 }
 
+.object-actions button.danger {
+  color: #fecaca;
+}
+
+.object-actions button.danger:hover {
+  background: #7f1d1d;
+}
+
 .object-actions button:disabled {
   opacity: 0.35;
   cursor: not-allowed;

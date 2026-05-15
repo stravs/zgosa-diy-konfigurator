@@ -361,6 +361,7 @@ objectActions = createObjectActions({
   setMoveTool,
   setRotateTool,
   setScaleTool,
+  deleteSelected,
   openProperties: (objectId) => {
     objectActions?.hide();
     propertySheet.open(objectId);

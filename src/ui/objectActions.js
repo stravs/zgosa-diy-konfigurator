@@ -48,6 +48,7 @@ export function createObjectActions({
   setMoveTool,
   setRotateTool,
   setScaleTool,
+  deleteSelected,
   openProperties,
   shouldHide = () => false,
 }) {
@@ -76,8 +77,10 @@ export function createObjectActions({
     const id = selection.getSelectedIds()[0];
     if (id) openProperties(id);
   });
+  const deleteButton = createButton('🗑', 'Delete', () => deleteSelected());
+  deleteButton.className = 'danger';
 
-  buttons.append(moveButton, rotateButton, scaleButton, propertiesButton);
+  buttons.append(moveButton, rotateButton, scaleButton, propertiesButton, deleteButton);
   panel.append(toggleButton, buttons);
   document.body.appendChild(panel);
 
