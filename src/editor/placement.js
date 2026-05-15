@@ -148,6 +148,7 @@ export function createPlacementController({
 
   return {
     startPlacement,
+    spawnObject,
     updatePlacementPreview,
     placePendingObject,
     clearPlacementPreview,

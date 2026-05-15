@@ -741,7 +741,12 @@ toggleEditBaseInput.addEventListener('change', () => {
 
 document.querySelectorAll('[data-add-object]').forEach((button) => {
   button.addEventListener('click', () => {
-    placement.startPlacement(button.dataset.addObject);
+    if (isMobileQuality()) {
+      drawers?.closeMobileDrawers();
+      placement.spawnObject(button.dataset.addObject);
+    } else {
+      placement.startPlacement(button.dataset.addObject);
+    }
   });
 });
 
