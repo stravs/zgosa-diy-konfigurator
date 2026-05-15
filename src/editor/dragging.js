@@ -38,6 +38,7 @@ export function createDragging({
   let isDraggingObject = false;
   let dragOffset = { x: 0, z: 0 };
   let dragStartPoint = null;
+  let dragYaw = 0;
   let marqueeStart = null;
   let marqueeCurrent = null;
   let marqueeAdditive = false;
@@ -63,9 +64,41 @@ export function createDragging({
     return dragRaycaster.ray.intersectPlane(plane, point) ? point : null;
   }
 
-  function getMovePoint(event, object) {
+  function getHitWorldNormal(hit) {
+    if (!hit?.face) {
+      return new THREE.Vector3(0, 1, 0);
+    }
+
+    const normal = hit.face.normal.clone();
+    const normalMatrix = new THREE.Matrix3().getNormalMatrix(hit.object.matrixWorld);
+    return normal.applyMatrix3(normalMatrix).normalize();
+  }
+
+  function getSurfaceRotation(normal, yaw = 0) {
+    const surfaceQuaternion = new THREE.Quaternion().setFromUnitVectors(
+      new THREE.Vector3(0, 1, 0),
+      normal
+    );
+    const yawQuaternion = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+    return new THREE.Euler().setFromQuaternion(surfaceQuaternion.multiply(yawQuaternion));
+  }
+
+  function getMoveHit(event, object) {
     const surfaceHit = raycast.getPlacementHit(event, { excludeIds: [object.id] });
-    return surfaceHit?.point ?? getFallbackPlanePoint(event, object.position.y);
+
+    if (surfaceHit) {
+      const normal = getHitWorldNormal(surfaceHit);
+
+      if (normal.y > 0.25) {
+        return {
+          point: surfaceHit.point,
+          normal,
+        };
+      }
+    }
+
+    const fallbackPoint = getFallbackPlanePoint(event, object.position.y);
+    return fallbackPoint ? { point: fallbackPoint, normal: new THREE.Vector3(0, 1, 0) } : null;
   }
 
   function updateGroundMarker(hit) {
@@ -179,9 +212,9 @@ export function createDragging({
     }
 
     const object = getObjectById(selectedObjectId);
-    const movePoint = object ? getMovePoint(event, object) : null;
+    const moveHit = object ? getMoveHit(event, object) : null;
 
-    if (!object || !movePoint) {
+    if (!object || !moveHit) {
       return;
     }
 
@@ -189,23 +222,28 @@ export function createDragging({
     event.stopPropagation();
     event.stopImmediatePropagation?.();
 
-    const nextX = movePoint.x + dragOffset.x;
-    const nextZ = movePoint.z + dragOffset.z;
-    const nextY = movePoint.y;
+    const nextX = moveHit.point.x + dragOffset.x;
+    const nextZ = moveHit.point.z + dragOffset.z;
+    const nextY = moveHit.point.y;
+    const nextRotation = getSurfaceRotation(moveHit.normal, dragYaw);
 
     object.position.x = nextX;
     object.position.y = nextY;
     object.position.z = nextZ;
+    object.rotation.x = nextRotation.x;
+    object.rotation.y = nextRotation.y;
+    object.rotation.z = nextRotation.z;
     selectedMesh.position.set(nextX, nextY, nextZ);
+    selectedMesh.rotation.copy(nextRotation);
     selection.updateSelectedMeshBounds();
     updateProperties();
     setStatus(`Moving ${object.id}: x ${nextX.toFixed(2)}, z ${nextZ.toFixed(2)}`);
   }
 
   function startObjectDrag(event, object) {
-    const movePoint = getMovePoint(event, object);
+    const moveHit = getMoveHit(event, object);
 
-    if (!movePoint) {
+    if (!moveHit) {
       return false;
     }
 
@@ -218,9 +256,10 @@ export function createDragging({
     isDraggingObject = true;
     dragStartPoint = { x: event.clientX, y: event.clientY, pointerType: event.pointerType };
     renderer.domElement.setPointerCapture?.(event.pointerId);
+    dragYaw = object.rotation.y;
     dragOffset = {
-      x: object.position.x - movePoint.x,
-      z: object.position.z - movePoint.z,
+      x: object.position.x - moveHit.point.x,
+      z: object.position.z - moveHit.point.z,
     };
     return true;
   }

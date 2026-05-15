@@ -19,8 +19,8 @@ function simplifyTransformGizmo(transformControls) {
 }
 
 function getSelectionCenter(ids, objectMeshes) {
-  const center = new THREE.Vector3();
-  let count = 0;
+  const box = new THREE.Box3();
+  let hasBox = false;
 
   for (const id of ids) {
     const mesh = objectMeshes.get(id);
@@ -29,11 +29,11 @@ function getSelectionCenter(ids, objectMeshes) {
       continue;
     }
 
-    center.add(mesh.position);
-    count += 1;
+    box.union(new THREE.Box3().setFromObject(mesh));
+    hasBox = true;
   }
 
-  return count === 0 ? center : center.divideScalar(count);
+  return hasBox ? box.getCenter(new THREE.Vector3()) : new THREE.Vector3();
 }
 
 export function createSelection({ scene, camera, renderer, controls, objectMeshes, onTransformStart, onChange, setStatus }) {
