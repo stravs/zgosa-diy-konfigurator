@@ -25,6 +25,7 @@ export function createDragging({
   onGroundMove,
   onPrimaryClick,
   onLongPressEmpty,
+  onSceneTap,
   onLongPressObject,
   onDoubleClickObject,
 }) {
@@ -316,6 +317,7 @@ export function createDragging({
         longPressTimer = window.setTimeout(() => {
           longPressTimer = null;
           longPressStart = null;
+          touchEmptyStart = null;
           onLongPressEmpty?.();
         }, LONG_PRESS_MS);
         return;
@@ -410,6 +412,7 @@ export function createDragging({
       const distance = Math.hypot(event.clientX - touchTapStart.x, event.clientY - touchTapStart.y);
 
       if (distance <= 10) {
+        onSceneTap?.();
         selectObject(null);
       }
 
@@ -453,6 +456,7 @@ export function createDragging({
     onObjectDragEnd?.();
 
     if (wasTap && canDragObject()) {
+      onSceneTap?.();
       selectObject(null);
     }
   }

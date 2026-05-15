@@ -663,6 +663,7 @@ dragging = createDragging({
     return placement.placePendingObject(hit);
   },
   onLongPressEmpty: () => drawers?.openObjectsDrawer(),
+  onSceneTap: () => drawers?.closeMobileDrawers(),
   onLongPressObject: (objectId) => {
     selectObject(objectId, { editGroupItem: true });
   },
