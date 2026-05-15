@@ -416,16 +416,21 @@ body.keyboard-open .bottombar {
   display: none;
   align-items: center;
   justify-content: center;
+  flex-direction: column;
   flex: 0 0 auto;
   min-width: 66px;
-  min-height: 42px;
-  padding: 8px 10px;
+  min-height: 48px;
+  padding: 5px 8px;
   border: 1px solid rgba(148, 163, 184, 0.28);
   border-radius: 10px;
   background: #1e293b;
   color: #e2e8f0;
   cursor: pointer;
   font-size: 13px;
+}
+
+.tool-label {
+  display: none;
 }
 
 .mobile-tool:hover,
@@ -729,6 +734,35 @@ body.show-right-panel .drawer-handle-right {
 
 
 @media (max-width: 1100px), (pointer: coarse) {
+  .tool-label {
+    display: block;
+    margin-top: 2px;
+    font-size: 9px;
+    line-height: 1;
+  }
+
+  .mobile-tool .tool-icon {
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  .object-actions button {
+    width: 46px;
+    height: 42px;
+    border-radius: 14px;
+    font-size: 15px;
+  }
+
+  .object-actions.collapsed button {
+    width: 38px;
+    height: 38px;
+    border-radius: 999px;
+  }
+
+  .object-actions.collapsed .tool-label {
+    display: none;
+  }
+
   .property-sheet-backdrop {
     bottom: calc(58px + var(--keyboard-offset, 0px));
     padding-bottom: 0;
@@ -876,8 +910,12 @@ body.show-right-panel .drawer-handle-right {
     display: none;
   }
 
-  .bottombar span {
+  .bottombar > span {
     display: none;
+  }
+
+  .bottombar .mobile-tool span {
+    display: block;
   }
 
   .mobile-tool {

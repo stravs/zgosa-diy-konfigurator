@@ -38,6 +38,18 @@ function getScreenPoint({ camera, renderer, objectMeshes, selectedIds }) {
   };
 }
 
+function setButtonContent(button, icon, label) {
+  const iconSpan = document.createElement('span');
+  iconSpan.className = 'tool-icon';
+  iconSpan.textContent = icon;
+
+  const labelSpan = document.createElement('span');
+  labelSpan.className = 'tool-label';
+  labelSpan.textContent = label;
+
+  button.replaceChildren(iconSpan, labelSpan);
+}
+
 export function createObjectActions({
   camera,
   renderer,
@@ -59,7 +71,7 @@ export function createObjectActions({
   const toggleButton = document.createElement('button');
   toggleButton.type = 'button';
   toggleButton.className = 'object-actions-toggle';
-  toggleButton.textContent = '↔';
+  setButtonContent(toggleButton, '↔', 'Tools');
   toggleButton.title = 'Object tools';
   toggleButton.setAttribute('aria-label', 'Object tools');
 
@@ -72,13 +84,13 @@ export function createObjectActions({
 
   const moveButton = createButton('↔', 'Move', () => setMoveTool());
   const rotateButton = createButton('⟳', 'Rotate', () => setRotateTool());
-  const scaleButton = createButton('⬚', 'Extend face', () => setScaleTool());
-  const propertiesButton = createButton('⚙', 'Properties', () => {
+  const scaleButton = createButton('⬚', 'Extend', () => setScaleTool());
+  const propertiesButton = createButton('⚙', 'Props', () => {
     const id = selection.getSelectedIds()[0];
     if (id) openProperties(id);
   });
   const deleteButton = createButton('🗑', 'Delete', () => deleteSelected());
-  deleteButton.className = 'danger';
+  deleteButton.classList.add('danger');
 
   buttons.append(moveButton, rotateButton, scaleButton, propertiesButton, deleteButton);
   panel.append(toggleButton, buttons);
@@ -88,7 +100,7 @@ export function createObjectActions({
     expanded = nextExpanded;
     panel.classList.toggle('expanded', expanded);
     panel.classList.toggle('collapsed', !expanded);
-    toggleButton.textContent = activeIcon;
+    setButtonContent(toggleButton, activeIcon, 'Tools');
 
     if (expanded && panel.contains(document.activeElement)) {
       document.activeElement.blur();
@@ -98,7 +110,7 @@ export function createObjectActions({
   function createButton(icon, label, onClick) {
     const button = document.createElement('button');
     button.type = 'button';
-    button.textContent = icon;
+    setButtonContent(button, icon, label);
     button.title = label;
     button.setAttribute('aria-label', label);
     button.addEventListener('pointerdown', (event) => {
@@ -176,7 +188,7 @@ export function createObjectActions({
     },
     setActiveIcon: (icon) => {
       activeIcon = icon;
-      toggleButton.textContent = activeIcon;
+      setButtonContent(toggleButton, activeIcon, 'Tools');
     },
     hide: () => {
       panel.hidden = true;
