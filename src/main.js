@@ -254,6 +254,9 @@ const measureTool = createMeasureTool({
     status.textContent = message;
   },
   requestRender,
+  onActiveChange: (active) => {
+    document.getElementById('mobile-measure')?.classList.toggle('active', active);
+  },
 });
 
 const selection = createSelection({

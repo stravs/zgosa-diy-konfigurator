@@ -434,8 +434,10 @@ body.keyboard-open .bottombar {
 }
 
 .mobile-tool:hover,
-.mobile-tool:active {
+.mobile-tool:active,
+.mobile-tool.active {
   background: #334155;
+  border-color: rgba(56, 189, 248, 0.75);
 }
 
 .mobile-tool.danger {

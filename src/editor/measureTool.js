@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-export function createMeasureTool({ scene, renderer, raycast, setStatus, requestRender }) {
+export function createMeasureTool({ scene, renderer, raycast, setStatus, requestRender, onActiveChange }) {
   const points = [];
   const geometry = new THREE.BufferGeometry();
   const material = new THREE.LineBasicMaterial({ color: 0x00ff66 });
@@ -59,9 +59,10 @@ export function createMeasureTool({ scene, renderer, raycast, setStatus, request
     line.visible = false;
     startMarker.visible = false;
     endMarker.visible = false;
-    tooltip.hidden = false;
-    tooltip.textContent = 'Click first point';
-    setStatus('Measure: click first point');
+    tooltip.hidden = true;
+    tooltip.textContent = '';
+    setStatus('Measure');
+    onActiveChange?.(true);
     requestRender?.();
   }
 
@@ -73,6 +74,7 @@ export function createMeasureTool({ scene, renderer, raycast, setStatus, request
     startMarker.visible = false;
     endMarker.visible = false;
     tooltip.hidden = true;
+    onActiveChange?.(false);
     requestRender?.();
   }
 
@@ -84,12 +86,12 @@ export function createMeasureTool({ scene, renderer, raycast, setStatus, request
     positionTooltip(event);
 
     if (points.length === 0) {
-      tooltip.textContent = 'Click first point';
+      tooltip.hidden = true;
       return;
     }
 
     if (points.length >= 2) {
-      tooltip.textContent = `${getDistance(points[0], points[1]).toFixed(2)}m · click to quit`;
+      tooltip.textContent = `${getDistance(points[0], points[1]).toFixed(2)}m`;
       return;
     }
 
@@ -100,10 +102,7 @@ export function createMeasureTool({ scene, renderer, raycast, setStatus, request
     }
 
     previewPoint = hit.point.clone();
-    const distance = getDistance(points[0], previewPoint).toFixed(2);
     setLine(points[0], previewPoint);
-    setTooltip(event, `${distance}m`);
-    setStatus(`Measure: ${distance}m`);
   }
 
   function onPointerDown(event) {
@@ -130,8 +129,8 @@ export function createMeasureTool({ scene, renderer, raycast, setStatus, request
       points.push(hit.point.clone());
       startMarker.visible = true;
       startMarker.position.set(hit.point.x, hit.point.y + 0.08, hit.point.z);
-      setTooltip(event, 'Click second point');
-      setStatus('Measure: click second point');
+      tooltip.hidden = true;
+      setStatus('Measure');
       requestRender?.();
       return;
     }
@@ -140,8 +139,8 @@ export function createMeasureTool({ scene, renderer, raycast, setStatus, request
       points.push(hit.point.clone());
       setLine(points[0], points[1]);
       const distance = getDistance(points[0], points[1]).toFixed(2);
-      setTooltip(event, `${distance}m · click to quit`);
-      setStatus(`Distance: ${distance}m. Click to quit measure.`);
+      setTooltip(event, `${distance}m`);
+      setStatus(`${distance}m`);
     }
   }
 
