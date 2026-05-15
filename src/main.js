@@ -347,6 +347,14 @@ function updateActiveTool() {
   }
 }
 
+function resetDefaultTool() {
+  activeTool = 'move';
+  objectActions?.setActiveIcon('↔');
+  scaleHandles?.hide();
+  selection.setTransformEnabled(false);
+  enableCameraControls();
+}
+
 objectActions = createObjectActions({
   camera,
   renderer,
@@ -396,7 +404,7 @@ function renderObjects() {
 
 function showSelectionStatus(selectedIds) {
   selectedObjectId = selectedIds.length === 1 ? selectedIds[0] : null;
-  updateActiveTool();
+  resetDefaultTool();
   syncSelectionUi();
   requestRender();
 

@@ -166,7 +166,7 @@ export function createObjectActions({
 
     if (selectionKey !== lastSelectionKey) {
       lastSelectionKey = selectionKey;
-      setExpanded(selectedIds.length > 1 && !selectedGroupId);
+      setExpanded(selectedIds.length > 1);
     }
 
     const point = getScreenPoint({ camera, renderer, objectMeshes, selectedIds });
