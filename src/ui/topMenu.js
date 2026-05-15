@@ -80,6 +80,7 @@ export function createTopMenu({ setGridVisible, setBaseEditing }) {
   });
 
   return {
+    close,
     setGridChecked: (checked) => {
       menuGridInput.checked = checked;
     },

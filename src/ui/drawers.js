@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { isMobileQuality } from '../core/performance.js';
+import { isCompactLayout } from '../core/performance.js';
 
 export function createDrawers({ leftPanel, rightPanel, objectsHandleButton, sceneHandleButton }) {
   function closeObjectsDrawer() {
@@ -131,19 +131,25 @@ export function createDrawers({ leftPanel, rightPanel, objectsHandleButton, scen
     open: toggleSceneDrawer,
   });
 
-  if (isMobileQuality()) {
-    const folders = [...leftPanel.querySelectorAll('.object-folder')];
-    folders.forEach((folder, index) => {
-      folder.open = index === 0;
-    });
-  } else {
-    openObjectsDrawer();
-    openSceneDrawer();
+  function syncLayoutMode() {
+    if (isCompactLayout()) {
+      closeMobileDrawers();
+      const folders = [...leftPanel.querySelectorAll('.object-folder')];
+      folders.forEach((folder, index) => {
+        folder.open = index === 0;
+      });
+    } else {
+      openObjectsDrawer();
+      openSceneDrawer();
+    }
   }
+
+  syncLayoutMode();
 
   return {
     closeSceneDrawer,
     closeMobileDrawers,
     openObjectsDrawer,
+    syncLayoutMode,
   };
 }

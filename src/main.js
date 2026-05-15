@@ -2,7 +2,13 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { catalog } from './catalog/index.js';
 import { preventBrowserZoom } from './core/browserZoom.js';
-import { getDevicePixelRatioCap, isMobileQuality } from './core/performance.js';
+import {
+  COARSE_POINTER_QUERY,
+  COMPACT_LAYOUT_QUERY,
+  getDevicePixelRatioCap,
+  hasCoarsePointer,
+  isCompactLayout,
+} from './core/performance.js';
 import { createRaycaster } from './core/raycast.js';
 import { createScene } from './core/scene.js';
 import { createDragging } from './editor/dragging.js';
@@ -59,14 +65,14 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = false;
 controls.target.set(0, 0, 0);
 controls.maxPolarAngle = Math.PI * 0.48;
-controls.minDistance = isMobileQuality() ? 1.2 : 4;
+controls.minDistance = 4;
 controls.maxDistance = 80;
 controls.enablePan = true;
 controls.enableZoom = true;
 controls.screenSpacePanning = false;
-controls.panSpeed = isMobileQuality() ? 0.8 : 1;
-controls.zoomSpeed = isMobileQuality() ? 0.7 : 1;
-controls.rotateSpeed = isMobileQuality() ? 0.75 : 1;
+controls.panSpeed = 1;
+controls.zoomSpeed = 1;
+controls.rotateSpeed = 1;
 controls.touches = {
   ONE: THREE.TOUCH.ROTATE,
   TWO: THREE.TOUCH.DOLLY_PAN,
@@ -79,6 +85,15 @@ controls.mouseButtons = {
 renderer.domElement.addEventListener('contextmenu', (event) => {
   event.preventDefault();
 });
+
+function updateControlProfile() {
+  controls.minDistance = hasCoarsePointer() ? 1.2 : 4;
+  controls.panSpeed = hasCoarsePointer() ? 0.8 : 1;
+  controls.zoomSpeed = hasCoarsePointer() ? 0.7 : 1;
+  controls.rotateSpeed = hasCoarsePointer() ? 0.75 : 1;
+}
+
+updateControlProfile();
 
 let lastTouchTap = null;
 
@@ -281,7 +296,7 @@ scaleHandles = createScaleHandles({
 });
 
 function applyCameraForTool() {
-  controls.enabled = !((activeTool === 'move' || activeTool === 'rotate' || activeTool === 'select') && isMobileQuality());
+  controls.enabled = true;
 }
 
 function setSelectTool() {
@@ -296,23 +311,23 @@ function setMoveTool() {
   activeTool = 'move';
   objectActions?.setActiveIcon('↔');
   scaleHandles?.hide();
-  selection.setTransformEnabled(!isMobileQuality());
+  selection.setTransformEnabled(!hasCoarsePointer());
 
-  if (!isMobileQuality()) {
+  if (!hasCoarsePointer()) {
     selection.setTransformMode('translate');
   }
 
   applyCameraForTool();
-  status.textContent = isMobileQuality() ? 'Move tool active: drag object' : 'Move tool active';
+  status.textContent = hasCoarsePointer() ? 'Move tool active: drag selected object' : 'Move tool active';
 }
 
 function setRotateTool() {
   activeTool = 'rotate';
   objectActions?.setActiveIcon('⟳');
   scaleHandles?.hide();
-  selection.setTransformEnabled(!isMobileQuality());
+  selection.setTransformEnabled(!hasCoarsePointer());
 
-  if (!isMobileQuality()) {
+  if (!hasCoarsePointer()) {
     selection.setTransformMode('rotate');
   }
 
@@ -344,7 +359,7 @@ function updateActiveTool() {
     scaleHandles?.setEnabled(true);
   } else {
     scaleHandles?.hide();
-    selection.setTransformEnabled(!isMobileQuality());
+    selection.setTransformEnabled(!hasCoarsePointer());
   }
 }
 
@@ -640,9 +655,9 @@ dragging = createDragging({
   getObjectById,
   snapToGrid,
   onBeforeChange: () => history.record(),
-  canDragObject: () => activeTool === 'move' && isMobileQuality(),
-  canRotateObject: () => activeTool === 'rotate' && isMobileQuality(),
-  canToggleSelect: () => activeTool === 'select' && isMobileQuality(),
+  canDragObject: () => activeTool === 'move' && hasCoarsePointer(),
+  canRotateObject: () => activeTool === 'rotate' && hasCoarsePointer(),
+  canToggleSelect: () => activeTool === 'select' && hasCoarsePointer(),
   onObjectDragEnd: applyCameraForTool,
   updateProperties: requestRender,
   setStatus: (message) => {
@@ -716,7 +731,7 @@ toggleEditBaseInput.addEventListener('change', () => {
 
 document.querySelectorAll('[data-add-object]').forEach((button) => {
   button.addEventListener('click', () => {
-    if (isMobileQuality()) {
+    if (isCompactLayout()) {
       drawers?.closeMobileDrawers();
       placement.spawnObject(button.dataset.addObject);
     } else {
@@ -805,5 +820,31 @@ function onResize() {
   requestRender();
 }
 
+function updateResponsiveMode() {
+  updateControlProfile();
+  updateActiveTool();
+  applyCameraForTool();
+  drawers?.syncLayoutMode();
+
+  if (!isCompactLayout()) {
+    topMenuPanel?.close();
+  }
+
+  onResize();
+}
+
+function addMediaChangeListener(query, handler) {
+  const mediaQueryList = window.matchMedia(query);
+
+  if (mediaQueryList.addEventListener) {
+    mediaQueryList.addEventListener('change', handler);
+  } else {
+    mediaQueryList.addListener(handler);
+  }
+}
+
 window.addEventListener('resize', onResize);
+addMediaChangeListener(COMPACT_LAYOUT_QUERY, updateResponsiveMode);
+addMediaChangeListener(COARSE_POINTER_QUERY, updateResponsiveMode);
+updateResponsiveMode();
 requestRender();

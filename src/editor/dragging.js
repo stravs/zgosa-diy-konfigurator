@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 
 const LONG_PRESS_MS = 550;
+const TAP_MOVE_PX = 10;
+const MARQUEE_MIN_PX = 4;
+const SURFACE_MIN_NORMAL_Y = 0.25;
+const ROTATE_RAD_PER_PX = Math.PI / 180;
 
 export function createDragging({
   renderer,
@@ -37,12 +41,16 @@ export function createDragging({
 
   let lastGroundHit = { x: 0, y: 0, z: 0 };
   let isDraggingObject = false;
+  let dragObjectId = null;
   let dragOffset = { x: 0, z: 0 };
   let dragStartPoint = null;
   let dragYaw = 0;
+  let hasRecordedDragChange = false;
   let isRotatingObject = false;
   let rotateStartPoint = null;
   let rotateSnapshots = [];
+  let hasRecordedRotateChange = false;
+  let activePointerId = null;
   let marqueeStart = null;
   let marqueeCurrent = null;
   let marqueeAdditive = false;
@@ -52,6 +60,74 @@ export function createDragging({
   let touchObjectId = null;
   const activeTouchPointers = new Set();
   const dragRaycaster = new THREE.Raycaster();
+
+  function consumeEvent(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation?.();
+  }
+
+  function getPointerDistance(start, event) {
+    return start ? Math.hypot(event.clientX - start.x, event.clientY - start.y) : 0;
+  }
+
+  function getMoveThreshold(start) {
+    return start?.pointerType === 'touch' ? TAP_MOVE_PX : 0;
+  }
+
+  function capturePointer(event) {
+    activePointerId = event.pointerId;
+    renderer.domElement.setPointerCapture?.(event.pointerId);
+  }
+
+  function releasePointer(event) {
+    if (renderer.domElement.hasPointerCapture?.(event.pointerId)) {
+      renderer.domElement.releasePointerCapture(event.pointerId);
+    }
+
+    if (activePointerId === event.pointerId) {
+      activePointerId = null;
+    }
+  }
+
+  function releaseActivePointer() {
+    if (activePointerId !== null && renderer.domElement.hasPointerCapture?.(activePointerId)) {
+      renderer.domElement.releasePointerCapture(activePointerId);
+    }
+
+    activePointerId = null;
+  }
+
+  function isActivePointer(event) {
+    return activePointerId === null || event.pointerId === activePointerId;
+  }
+
+  function resetDragState() {
+    isDraggingObject = false;
+    dragObjectId = null;
+    dragStartPoint = null;
+    hasRecordedDragChange = false;
+  }
+
+  function resetRotateState() {
+    isRotatingObject = false;
+    rotateStartPoint = null;
+    rotateSnapshots = [];
+    hasRecordedRotateChange = false;
+  }
+
+  function resetMarqueeState() {
+    marquee.hidden = true;
+    marqueeStart = null;
+    marqueeCurrent = null;
+    marqueeAdditive = false;
+  }
+
+  function resetTouchState() {
+    touchEmptyStart = null;
+    activeTouchPointers.clear();
+    cancelLongPress();
+  }
 
   function getPointerNdc(event) {
     const rect = renderer.domElement.getBoundingClientRect();
@@ -93,7 +169,7 @@ export function createDragging({
     if (surfaceHit) {
       const normal = getHitWorldNormal(surfaceHit);
 
-      if (normal.y > 0.25) {
+      if (normal.y > SURFACE_MIN_NORMAL_Y) {
         return {
           point: surfaceHit.point,
           normal,
@@ -138,7 +214,7 @@ export function createDragging({
     marquee.style.top = `${top}px`;
     marquee.style.width = `${width}px`;
     marquee.style.height = `${height}px`;
-    marquee.hidden = width < 4 && height < 4;
+    marquee.hidden = width < MARQUEE_MIN_PX && height < MARQUEE_MIN_PX;
   }
 
   function isPointInMarquee(point) {
@@ -199,7 +275,33 @@ export function createDragging({
     return hasBox ? box.getCenter(new THREE.Vector3()) : new THREE.Vector3();
   }
 
+  function shouldWaitForGestureThreshold(start, event) {
+    return getPointerDistance(start, event) <= getMoveThreshold(start);
+  }
+
+  function recordDragChangeIfNeeded() {
+    if (hasRecordedDragChange) {
+      return;
+    }
+
+    onBeforeChange?.();
+    hasRecordedDragChange = true;
+  }
+
+  function recordRotateChangeIfNeeded() {
+    if (hasRecordedRotateChange) {
+      return;
+    }
+
+    onBeforeChange?.();
+    hasRecordedRotateChange = true;
+  }
+
   function updatePointer(event) {
+    if ((isDraggingObject || isRotatingObject) && !isActivePointer(event)) {
+      return;
+    }
+
     if (event.pointerType === 'touch' && activeTouchPointers.size > 1) {
       cancelLongPress();
       touchEmptyStart = null;
@@ -207,9 +309,9 @@ export function createDragging({
     }
 
     if (longPressStart) {
-      const distance = Math.hypot(event.clientX - longPressStart.x, event.clientY - longPressStart.y);
+      const distance = getPointerDistance(longPressStart, event);
 
-      if (distance > 10) {
+      if (distance > TAP_MOVE_PX) {
         cancelLongPress();
         touchEmptyStart = null;
       }
@@ -221,12 +323,16 @@ export function createDragging({
     onGroundMove?.(placementHit);
 
     if (isRotatingObject && rotateStartPoint) {
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation?.();
+      consumeEvent(event);
+
+      if (shouldWaitForGestureThreshold(rotateStartPoint, event)) {
+        return;
+      }
+
+      recordRotateChangeIfNeeded();
 
       const delta = event.clientX - rotateStartPoint.x;
-      const angle = delta * (Math.PI / 180);
+      const angle = delta * ROTATE_RAD_PER_PX;
       const center = rotateStartPoint.center;
 
       for (const snapshot of rotateSnapshots) {
@@ -261,23 +367,25 @@ export function createDragging({
       return;
     }
 
-    const selectedObjectId = getSelectedId();
-    const selectedMesh = selection.getSelectedMesh();
-
-    if (!isDraggingObject || !selectedObjectId || !selectedMesh) {
+    if (!isDraggingObject || !dragObjectId) {
       return;
     }
 
-    const object = getObjectById(selectedObjectId);
+    const object = getObjectById(dragObjectId);
+    const selectedMesh = objectMeshes.get(dragObjectId);
     const moveHit = object ? getMoveHit(event, object) : null;
 
-    if (!object || !moveHit) {
+    if (!object || !selectedMesh || !moveHit) {
       return;
     }
 
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation?.();
+    consumeEvent(event);
+
+    if (shouldWaitForGestureThreshold(dragStartPoint, event)) {
+      return;
+    }
+
+    recordDragChangeIfNeeded();
 
     const nextX = moveHit.point.x + dragOffset.x;
     const nextZ = moveHit.point.z + dragOffset.z;
@@ -304,14 +412,12 @@ export function createDragging({
       return false;
     }
 
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation?.();
+    consumeEvent(event);
 
-    onBeforeChange?.();
     controls.enabled = false;
     isRotatingObject = true;
-    renderer.domElement.setPointerCapture?.(event.pointerId);
+    hasRecordedRotateChange = false;
+    capturePointer(event);
     rotateStartPoint = {
       x: event.clientX,
       y: event.clientY,
@@ -336,15 +442,14 @@ export function createDragging({
       return false;
     }
 
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation?.();
+    consumeEvent(event);
 
-    onBeforeChange?.();
     controls.enabled = false;
     isDraggingObject = true;
+    dragObjectId = object.id;
+    hasRecordedDragChange = false;
     dragStartPoint = { x: event.clientX, y: event.clientY, pointerType: event.pointerType };
-    renderer.domElement.setPointerCapture?.(event.pointerId);
+    capturePointer(event);
     dragYaw = object.rotation.y;
     dragOffset = {
       x: object.position.x - moveHit.point.x,
@@ -368,10 +473,10 @@ export function createDragging({
       return;
     }
 
-    const groundHit = raycast.getGroundHit(event);
     const placementHit = raycast.getPlacementHit(event);
 
     if (onPrimaryClick?.(placementHit)) {
+      consumeEvent(event);
       return;
     }
 
@@ -383,27 +488,8 @@ export function createDragging({
       }
 
       if (objectHit) {
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation?.();
+        consumeEvent(event);
         selectObject(objectHit.object.userData.objectId, { toggle: true, editGroupItem: true });
-        return;
-      }
-    }
-
-    if (event.pointerType === 'touch' && canRotateObject() && selection.getSelectedIds().length > 0) {
-      cancelLongPress();
-      startObjectRotate(event);
-      return;
-    }
-
-    if (event.pointerType === 'touch' && canDragObject()) {
-      const selectedIds = selection.getSelectedIds();
-      const object = selectedIds.length === 1 ? getObjectById(selectedIds[0]) : null;
-
-      if (object) {
-        cancelLongPress();
-        startObjectDrag(event, object);
         return;
       }
     }
@@ -448,8 +534,13 @@ export function createDragging({
     if (event.pointerType === 'touch') {
       const selectedIds = selection.getSelectedIds();
 
+      if (selectedIds.includes(objectId) && canRotateObject()) {
+        cancelLongPress();
+        startObjectRotate(event);
+        return;
+      }
+
       if (selectedIds.length === 1 && selectedIds.includes(objectId) && canDragObject()) {
-        event.preventDefault();
         cancelLongPress();
         startObjectDrag(event, object);
         return;
@@ -470,7 +561,7 @@ export function createDragging({
       return;
     }
 
-    event.preventDefault();
+    consumeEvent(event);
     selectObject(objectId, {
       toggle: event.shiftKey,
       editGroupItem: event.detail >= 2,
@@ -501,8 +592,7 @@ export function createDragging({
       return;
     }
 
-    event.preventDefault();
-    event.stopPropagation();
+    consumeEvent(event);
     const objectId = objectHit.object.userData.objectId;
 
     if (isObjectLocked(objectId)) {
@@ -521,14 +611,18 @@ export function createDragging({
       activeTouchPointers.delete(event.pointerId);
     }
 
+    if ((isDraggingObject || isRotatingObject) && !isActivePointer(event)) {
+      return;
+    }
+
     const touchTapStart = touchEmptyStart;
     touchEmptyStart = null;
     cancelLongPress();
 
     if (touchTapStart) {
-      const distance = Math.hypot(event.clientX - touchTapStart.x, event.clientY - touchTapStart.y);
+      const distance = getPointerDistance(touchTapStart, event);
 
-      if (distance <= 10) {
+      if (distance <= TAP_MOVE_PX) {
         onSceneTap?.();
         selectObject(null);
       }
@@ -542,7 +636,7 @@ export function createDragging({
 
       marquee.hidden = true;
 
-      if (width < 4 && height < 4) {
+      if (width < MARQUEE_MIN_PX && height < MARQUEE_MIN_PX) {
         selectObject(null);
       } else {
         const ids = getMarqueeObjectIds();
@@ -552,22 +646,18 @@ export function createDragging({
         selectObjects(nextIds);
       }
 
-      marqueeStart = null;
-      marqueeCurrent = null;
-      marqueeAdditive = false;
+      resetMarqueeState();
       return;
     }
 
     if (isRotatingObject) {
       const wasTap = rotateStartPoint
         && rotateStartPoint.pointerType === 'touch'
-        && Math.hypot(event.clientX - rotateStartPoint.x, event.clientY - rotateStartPoint.y) <= 10;
+        && getPointerDistance(rotateStartPoint, event) <= TAP_MOVE_PX;
 
-      isRotatingObject = false;
-      rotateStartPoint = null;
-      rotateSnapshots = [];
+      resetRotateState();
       controls.enabled = true;
-      renderer.domElement.releasePointerCapture?.(event.pointerId);
+      releasePointer(event);
       onObjectDragEnd?.();
 
       if (wasTap && canRotateObject()) {
@@ -584,12 +674,11 @@ export function createDragging({
 
     const wasTap = dragStartPoint
       && dragStartPoint.pointerType === 'touch'
-      && Math.hypot(event.clientX - dragStartPoint.x, event.clientY - dragStartPoint.y) <= 10;
+      && getPointerDistance(dragStartPoint, event) <= TAP_MOVE_PX;
 
-    isDraggingObject = false;
-    dragStartPoint = null;
+    resetDragState();
     controls.enabled = true;
-    renderer.domElement.releasePointerCapture?.(event.pointerId);
+    releasePointer(event);
     onObjectDragEnd?.();
 
     if (wasTap && canDragObject()) {
@@ -599,25 +688,32 @@ export function createDragging({
   }
 
   renderer.domElement.addEventListener('pointermove', updatePointer);
-  renderer.domElement.addEventListener('pointerdown', onPointerDown, { capture: true });
-  renderer.domElement.addEventListener('dblclick', onDoubleClick, { capture: true });
+  renderer.domElement.addEventListener('pointerdown', onPointerDown, true);
+  renderer.domElement.addEventListener('dblclick', onDoubleClick, true);
   window.addEventListener('pointerup', onPointerUp);
   window.addEventListener('pointercancel', onPointerUp);
 
   return {
     getLastGroundHit: () => lastGroundHit,
     stopDragging: () => {
-      isDraggingObject = false;
-      isRotatingObject = false;
-      dragStartPoint = null;
-      rotateStartPoint = null;
-      rotateSnapshots = [];
+      resetDragState();
+      resetRotateState();
+      resetMarqueeState();
+      releaseActivePointer();
       controls.enabled = true;
-      marquee.hidden = true;
-      marqueeStart = null;
-      marqueeCurrent = null;
-      touchEmptyStart = null;
-      cancelLongPress();
+      resetTouchState();
+    },
+    destroy: () => {
+      renderer.domElement.removeEventListener('pointermove', updatePointer);
+      renderer.domElement.removeEventListener('pointerdown', onPointerDown, true);
+      renderer.domElement.removeEventListener('dblclick', onDoubleClick, true);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
+      resetDragState();
+      resetRotateState();
+      releaseActivePointer();
+      resetTouchState();
+      marquee.remove();
     },
   };
 }
