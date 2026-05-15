@@ -85,16 +85,15 @@
         <main id="app"></main>
         <aside class="right-panel">
           <h2>Scene</h2>
-          <div id="no-selection" class="layers-panel">
+          <div id="no-selection" class="scene-objects-panel">
             <h3>Scene Objects</h3>
-            <div id="layers-list" class="layers-list"></div>
+            <div id="scene-objects-list" class="scene-objects-list"></div>
           </div>
         </aside>
       </div>
       <footer class="bottombar">
         <button id="mobile-select" class="mobile-tool" type="button" aria-label="Select">☑</button>
         <button id="mobile-measure" class="mobile-tool" type="button" aria-label="Measure">📏</button>
-        <button id="mobile-group" class="mobile-tool" type="button" aria-label="Group">⧉</button>
         <button id="mobile-undo" class="mobile-tool" type="button" aria-label="Undo">←</button>
         <button id="mobile-redo" class="mobile-tool" type="button" aria-label="Redo">→</button>
         <span><kbd>Space</kbd> Move</span>
@@ -109,23 +108,7 @@
       </footer>
     </div>
     <button id="objects-handle" class="drawer-handle drawer-handle-left" type="button" aria-label="Warehouse">📦</button>
-    <button id="layers-handle" class="drawer-handle drawer-handle-right" type="button" aria-label="Scene">☷</button>
-    <div id="context-menu" class="context-menu" hidden>
-      <button data-context-add="box" type="button">Add Box</button>
-      <button data-context-add="ledge" type="button">Add Ledge</button>
-      <button data-context-add="quarterPipe" type="button">Add Quarter Pipe</button>
-      <button data-context-add="halfPipe" type="button">Add Half Pipe</button>
-      <button data-context-add="corner" type="button">Add Corner</button>
-      <button data-context-add="hip" type="button">Add Hip</button>
-      <button data-context-add="volcano" type="button">Add Volcano</button>
-      <button data-context-add="boob" type="button">Add Boob</button>
-      <button data-context-add="bank" type="button">Add Bank</button>
-      <button data-context-add="pyramid" type="button">Add Pyramid</button>
-      <button data-context-add="flatHip" type="button">Add Flat Hip</button>
-      <button data-context-add="rail" type="button">Add Rail</button>
-      <button data-context-add="stairs" type="button">Add Stairs</button>
-      <button data-context-add="skater" type="button">Add Skater</button>
-    </div>
+    <button id="scene-handle" class="drawer-handle drawer-handle-right" type="button" aria-label="Scene">☷</button>
     <script type="module" src="./src/main.js"></script>
   </body>
 </html>

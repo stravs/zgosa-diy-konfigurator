@@ -200,18 +200,6 @@ export function loadState(snapshot) {
   nextGroupId = getNextGroupId();
 }
 
-export function resetState() {
-  state.version = 1;
-  state.scene = {
-    gridSize: 0.01,
-    units: 'm',
-  };
-  state.objects.splice(0, state.objects.length);
-  state.groups.splice(0, state.groups.length);
-  nextObjectId = 1;
-  nextGroupId = 1;
-}
-
 function normalizeObject(object) {
   if (!isPlainObject(object)) {
     throw new Error('Invalid object in scene JSON');

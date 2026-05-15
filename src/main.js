@@ -13,10 +13,9 @@ import { createScaleHandles } from './editor/scaleHandles.js';
 import { createSelection } from './editor/selection.js';
 import { createShortcuts } from './editor/shortcuts.js';
 import { createDrawers } from './ui/drawers.js';
-import { createLayersPanel } from './ui/layersPanel.js';
+import { createSceneObjectsPanel } from './ui/sceneObjectsPanel.js';
 import { createMobileToolbar } from './ui/mobileToolbar.js';
 import { createObjectActions } from './ui/objectActions.js';
-import { createPropertiesPanel } from './ui/propertiesPanel.js';
 import { createPropertySheet } from './ui/propertySheet.js';
 import { createToolbar } from './ui/toolbar.js';
 import { createTopMenu } from './ui/topMenu.js';
@@ -43,7 +42,7 @@ const status = document.getElementById('status');
 const toggleGridInput = document.getElementById('toggle-grid');
 const toggleEditBaseInput = document.getElementById('toggle-edit-base');
 const objectsHandleButton = document.getElementById('objects-handle');
-const layersHandleButton = document.getElementById('layers-handle');
+const sceneHandleButton = document.getElementById('scene-handle');
 const leftPanel = document.querySelector('.left-panel');
 const rightPanel = document.querySelector('.right-panel');
 
@@ -153,8 +152,7 @@ const history = createHistory({
     selectedObjectId = null;
     selection.select(null);
     renderObjects();
-    propertiesPanel.update();
-    layersPanel.update();
+    sceneObjectsPanel.update();
     status.textContent = 'Restored history';
   },
 });
@@ -188,13 +186,10 @@ function isBaseGroup(groupId) {
 
 let propertySheet = null;
 
-const layersPanel = createLayersPanel({
+const sceneObjectsPanel = createSceneObjectsPanel({
   selectObject,
   selectGroup,
   renameGroup,
-  openObjectProperties: () => {
-    drawers?.closeLayersDrawer();
-  },
   toggleObjectLocked,
   toggleGroupLocked,
   isObjectLocked,
@@ -209,7 +204,6 @@ propertySheet = createPropertySheet({
   onBeforeChange: () => history.record(),
   onChange: () => {
     renderObjects();
-    propertiesPanel.update();
     requestRender();
   },
   onConfirm: (objectId) => {
@@ -226,18 +220,6 @@ propertySheet = createPropertySheet({
     } else {
       objectActions?.expand();
     }
-  },
-});
-
-const propertiesPanel = createPropertiesPanel({
-  getObject: () => selectedObjectId ? getObjectById(selectedObjectId) : null,
-  snapToGrid,
-  onBeforeChange: () => history.record(),
-  onChange: (object) => {
-    renderObjects();
-    propertiesPanel.update();
-    requestRender();
-    status.textContent = `Updated ${object.id}`;
   },
 });
 
@@ -267,7 +249,6 @@ const selection = createSelection({
   objectMeshes,
   onTransformStart: () => history.record(),
   onChange: () => {
-    propertiesPanel.update();
     scaleHandles?.update();
     requestRender();
   },
@@ -291,7 +272,6 @@ scaleHandles = createScaleHandles({
   onBeforeChange: () => history.record(),
   onChange: (object) => {
     renderObjects();
-    propertiesPanel.update();
     status.textContent = `Scaled ${object.id}`;
   },
   setStatus: (message) => {
@@ -378,6 +358,8 @@ objectActions = createObjectActions({
   setMoveTool,
   setRotateTool,
   setScaleTool,
+  groupSelected,
+  ungroupSelected,
   deleteSelected,
   openProperties: (objectId) => {
     objectActions?.hide();
@@ -390,16 +372,15 @@ function renderObjects() {
   objectRenderer.render();
   selection.updateHelper();
   scaleHandles?.update();
-  layersPanel.update();
+  sceneObjectsPanel.update();
   objectActions?.update();
   requestRender();
 }
 
 function showSelectionStatus(selectedIds) {
   selectedObjectId = selectedIds.length === 1 ? selectedIds[0] : null;
-  propertiesPanel.update();
   updateActiveTool();
-  layersPanel.update();
+  sceneObjectsPanel.update();
   objectActions?.update();
   requestRender();
 
@@ -482,7 +463,7 @@ function groupSelected() {
   }
 
   selectGroup(group.id);
-  layersPanel.update();
+  sceneObjectsPanel.update();
   status.textContent = `Created ${group.name}`;
 }
 
@@ -500,7 +481,7 @@ function renameGroup(groupId, name) {
     return;
   }
 
-  layersPanel.update();
+  sceneObjectsPanel.update();
   status.textContent = `Renamed group: ${group.name}`;
 }
 
@@ -518,7 +499,7 @@ function toggleObjectLocked(objectId) {
     selectObject(null);
   }
 
-  layersPanel.update();
+  sceneObjectsPanel.update();
   status.textContent = object.locked ? `Locked ${object.id}` : `Unlocked ${object.id}`;
 }
 
@@ -536,7 +517,7 @@ function toggleGroupLocked(groupId) {
     selectObject(null);
   }
 
-  layersPanel.update();
+  sceneObjectsPanel.update();
   status.textContent = group.locked ? `Locked ${group.name}` : `Unlocked ${group.name}`;
 }
 
@@ -577,7 +558,7 @@ function ungroupSelected() {
   history.record();
   const group = removeGroup(selectedGroupId);
   selectedGroupId = null;
-  layersPanel.update();
+  sceneObjectsPanel.update();
   status.textContent = group ? `Ungrouped ${group.name}` : 'Group not found';
 }
 
@@ -606,7 +587,6 @@ function deleteSelected() {
 
   selectObject(null);
   renderObjects();
-  propertiesPanel.update();
   status.textContent = `Deleted ${selectedIds.length} object${selectedIds.length === 1 ? '' : 's'}`;
 }
 
@@ -638,7 +618,6 @@ placement = createPlacementController({
   history,
   renderObjects,
   selectObject,
-  propertySheet,
   closeMobileDrawers: () => drawers?.closeMobileDrawers(),
   getLastGroundHit: () => dragging?.getLastGroundHit(),
   setStatus: (message) => {
@@ -648,7 +627,6 @@ placement = createPlacementController({
 });
 
 dragging = createDragging({
-  scene,
   renderer,
   camera,
   raycast,
@@ -666,11 +644,7 @@ dragging = createDragging({
   canRotateObject: () => activeTool === 'rotate' && isMobileQuality(),
   canToggleSelect: () => activeTool === 'select' && isMobileQuality(),
   onObjectDragEnd: applyCameraForTool,
-  updateProperties: () => {
-    propertiesPanel.update();
-    requestRender();
-  },
-  hideContextMenu: () => {},
+  updateProperties: requestRender,
   setStatus: (message) => {
     status.textContent = message;
   },
@@ -700,12 +674,10 @@ createToolbar({
   afterReset: () => {
     selectObject(null);
     renderObjects();
-    propertiesPanel.update();
   },
   afterLoad: () => {
     selectObject(null);
     renderObjects();
-    propertiesPanel.update();
   },
   setStatus: (message) => {
     status.textContent = message;
@@ -729,7 +701,7 @@ function setBaseEditing(enabled) {
     selectObject(null);
   }
 
-  layersPanel.update();
+  sceneObjectsPanel.update();
   status.textContent = canEditBase ? 'Base editing enabled' : 'Base editing disabled';
 }
 
@@ -765,19 +737,13 @@ drawers = createDrawers({
   leftPanel,
   rightPanel,
   objectsHandleButton,
-  layersHandleButton,
+  sceneHandleButton,
 });
 
-const {
-  closeLayersDrawer,
-  closeMobileDrawers,
-  openObjectsDrawer,
-} = drawers;
-
+const { closeMobileDrawers } = drawers;
 topMenuPanel = createTopMenu({
   setGridVisible,
   setBaseEditing,
-  ungroupSelected,
 });
 
 createMobileToolbar({
@@ -785,9 +751,6 @@ createMobileToolbar({
   selectObject,
   measureTool,
   setSelectTool,
-  groupSelected,
-  ungroupSelected,
-  hasSelectedGroup: () => Boolean(selectedGroupId),
   undoAction,
   redoAction,
 });
@@ -823,8 +786,7 @@ async function loadInitialScene() {
     initialGroupIds = new Set(state.groups.map((group) => group.id));
     selectObject(null);
     renderObjects();
-    propertiesPanel.update();
-    layersPanel.update();
+    sceneObjectsPanel.update();
     status.textContent = `Loaded zgosa.json (${state.objects.length} objects)`;
   } catch (error) {
     console.error(error);
@@ -832,8 +794,7 @@ async function loadInitialScene() {
   }
 }
 
-propertiesPanel.update();
-layersPanel.update();
+sceneObjectsPanel.update();
 loadInitialScene();
 
 function onResize() {

@@ -3,7 +3,6 @@ import * as THREE from 'three';
 const LONG_PRESS_MS = 550;
 
 export function createDragging({
-  scene,
   renderer,
   camera,
   raycast,
@@ -22,7 +21,6 @@ export function createDragging({
   canToggleSelect = () => false,
   onObjectDragEnd,
   updateProperties,
-  hideContextMenu,
   setStatus,
   onGroundMove,
   onPrimaryClick,
@@ -356,8 +354,6 @@ export function createDragging({
   }
 
   function onPointerDown(event) {
-    hideContextMenu();
-
     if (event.pointerType === 'touch') {
       activeTouchPointers.add(event.pointerId);
 

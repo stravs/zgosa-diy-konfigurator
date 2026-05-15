@@ -1,11 +1,10 @@
 import { catalog } from '../catalog/index.js';
 import { state } from '../state/store.js';
 
-export function createLayersPanel({
+export function createSceneObjectsPanel({
   selectObject,
   selectGroup,
   renameGroup,
-  openObjectProperties,
   toggleObjectLocked,
   toggleGroupLocked,
   isObjectLocked = () => false,
@@ -13,13 +12,13 @@ export function createLayersPanel({
   shouldShowObject = () => true,
   shouldShowGroup = () => true,
 }) {
-  const layersList = document.getElementById('layers-list');
+  const sceneObjectsList = document.getElementById('scene-objects-list');
   const expandedGroupIds = new Set();
 
   function createLockButton({ locked, label, onToggle }) {
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'layer-lock-button';
+    button.className = 'scene-lock-button';
     button.textContent = locked ? '🔒' : '🔓';
     button.setAttribute('aria-label', label);
     button.addEventListener('click', (event) => {
@@ -32,11 +31,11 @@ export function createLayersPanel({
 
   function createObjectButton(object) {
     const row = document.createElement('div');
-    row.className = `layer-row${isObjectLocked(object.id) ? ' locked' : ''}`;
+    row.className = `scene-object-row${isObjectLocked(object.id) ? ' locked' : ''}`;
 
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'layer-item';
+    button.className = 'scene-object-item';
     button.textContent = `${catalog[object.type]?.label ?? object.type} · ${object.id}`;
     button.addEventListener('click', () => {
       if (isObjectLocked(object.id)) {
@@ -44,7 +43,6 @@ export function createLayersPanel({
       }
 
       selectObject(object.id, { skipGroupSelect: true });
-      openObjectProperties?.(object.id);
     });
 
     row.append(
@@ -60,7 +58,7 @@ export function createLayersPanel({
 
   function createGroupSummary(group, details) {
     const summary = document.createElement('summary');
-    summary.className = `layer-group-summary${isGroupLocked(group.id) ? ' locked' : ''}`;
+    summary.className = `scene-group-summary${isGroupLocked(group.id) ? ' locked' : ''}`;
 
     const name = document.createElement('span');
     name.textContent = `${group.name} · ${group.objectIds.length} objects`;
@@ -168,22 +166,22 @@ export function createLayersPanel({
   }
 
   function update() {
-    layersList.replaceChildren();
+    sceneObjectsList.replaceChildren();
 
     const visibleObjects = state.objects.filter(shouldShowObject);
     const visibleGroups = state.groups.filter(shouldShowGroup);
 
     if (visibleObjects.length === 0 && visibleGroups.length === 0) {
       const empty = document.createElement('p');
-      empty.className = 'layers-empty';
+      empty.className = 'scene-objects-empty';
       empty.textContent = 'No objects in scene.';
-      layersList.appendChild(empty);
+      sceneObjectsList.appendChild(empty);
       return;
     }
 
     for (const group of visibleGroups) {
       const details = document.createElement('details');
-      details.className = `layer-group${isGroupLocked(group.id) ? ' locked' : ''}`;
+      details.className = `scene-group${isGroupLocked(group.id) ? ' locked' : ''}`;
       details.open = expandedGroupIds.has(group.id);
       details.appendChild(createGroupSummary(group, details));
 
@@ -195,7 +193,7 @@ export function createLayersPanel({
         }
       }
 
-      layersList.appendChild(details);
+      sceneObjectsList.appendChild(details);
     }
 
     const existingGroupIds = new Set(visibleGroups.map((group) => group.id));
@@ -210,7 +208,7 @@ export function createLayersPanel({
     const ungroupedObjects = visibleObjects.filter((object) => !groupedObjectIds.has(object.id));
 
     for (const object of ungroupedObjects) {
-      layersList.appendChild(createObjectButton(object));
+      sceneObjectsList.appendChild(createObjectButton(object));
     }
   }
 

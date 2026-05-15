@@ -1,4 +1,4 @@
-export function createTopMenu({ setGridVisible, setBaseEditing, ungroupSelected }) {
+export function createTopMenu({ setGridVisible, setBaseEditing }) {
   const topMenuToggleButton = document.getElementById('top-menu-toggle');
   const titleButton = document.querySelector('.topbar h1');
   const topMenu = document.getElementById('top-menu');

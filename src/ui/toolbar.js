@@ -1,6 +1,5 @@
 import {
   loadState,
-  resetState,
   serializeState,
   state,
 } from '../state/store.js';
@@ -30,11 +29,7 @@ export function createToolbar({ beforeReset, resetSceneState, beforeLoad, afterR
     }
 
     beforeReset?.();
-    if (resetSceneState) {
-      resetSceneState();
-    } else {
-      resetState();
-    }
+    resetSceneState();
 
     afterReset();
     setStatus('Cleared');

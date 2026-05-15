@@ -60,6 +60,8 @@ export function createObjectActions({
   setMoveTool,
   setRotateTool,
   setScaleTool,
+  groupSelected,
+  ungroupSelected,
   deleteSelected,
   openProperties,
   shouldHide = () => false,
@@ -89,10 +91,17 @@ export function createObjectActions({
     const id = selection.getSelectedIds()[0];
     if (id) openProperties(id);
   });
+  const groupButton = createButton('⧉', 'Group', () => {
+    if (getSelectedGroupId()) {
+      ungroupSelected?.();
+    } else {
+      groupSelected();
+    }
+  });
   const deleteButton = createButton('🗑', 'Delete', () => deleteSelected());
   deleteButton.classList.add('danger');
 
-  buttons.append(moveButton, rotateButton, scaleButton, propertiesButton, deleteButton);
+  buttons.append(moveButton, rotateButton, scaleButton, propertiesButton, groupButton, deleteButton);
   panel.append(toggleButton, buttons);
   document.body.appendChild(panel);
 
@@ -170,9 +179,18 @@ export function createObjectActions({
     const object = selectedIds.length === 1 && !selectedGroupId
       ? getObjectById(selectedIds[0])
       : null;
+    const isMulti = selectedIds.length > 1;
 
-    scaleButton.hidden = !object || object.type !== 'box';
-    propertiesButton.hidden = !object;
+    moveButton.hidden = isMulti;
+    rotateButton.hidden = isMulti;
+    scaleButton.hidden = isMulti || !object || object.type !== 'box';
+    propertiesButton.hidden = isMulti || !object;
+    deleteButton.hidden = isMulti;
+    groupButton.hidden = !isMulti;
+    const groupLabel = selectedGroupId ? 'Ungroup' : 'Group';
+    setButtonContent(groupButton, '⧉', groupLabel);
+    groupButton.title = groupLabel;
+    groupButton.setAttribute('aria-label', groupLabel);
     scaleButton.disabled = false;
     scaleButton.title = 'Extend face';
 

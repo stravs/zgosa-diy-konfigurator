@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { isMobileQuality } from '../core/performance.js';
 
-export function createDrawers({ leftPanel, rightPanel, objectsHandleButton, layersHandleButton }) {
+export function createDrawers({ leftPanel, rightPanel, objectsHandleButton, sceneHandleButton }) {
   function closeObjectsDrawer() {
     document.body.classList.remove('show-objects-panel');
     leftPanel.classList.remove('drawer-open');
@@ -9,16 +9,16 @@ export function createDrawers({ leftPanel, rightPanel, objectsHandleButton, laye
     objectsHandleButton.style.transform = '';
   }
 
-  function closeLayersDrawer() {
+  function closeSceneDrawer() {
     document.body.classList.remove('show-right-panel');
     rightPanel.classList.remove('drawer-open');
     rightPanel.style.transform = '';
-    layersHandleButton.style.transform = '';
+    sceneHandleButton.style.transform = '';
   }
 
   function closeMobileDrawers() {
     closeObjectsDrawer();
-    closeLayersDrawer();
+    closeSceneDrawer();
   }
 
   function openObjectsDrawer() {
@@ -28,11 +28,11 @@ export function createDrawers({ leftPanel, rightPanel, objectsHandleButton, laye
     objectsHandleButton.style.transform = `translateY(-50%) translateX(${leftPanel.getBoundingClientRect().width}px)`;
   }
 
-  function openLayersDrawer() {
+  function openSceneDrawer() {
     document.body.classList.add('show-right-panel');
     rightPanel.classList.add('drawer-open');
     rightPanel.style.transform = '';
-    layersHandleButton.style.transform = `translateY(-50%) translateX(${-rightPanel.getBoundingClientRect().width}px)`;
+    sceneHandleButton.style.transform = `translateY(-50%) translateX(${-rightPanel.getBoundingClientRect().width}px)`;
   }
 
   function toggleObjectsDrawer() {
@@ -43,11 +43,11 @@ export function createDrawers({ leftPanel, rightPanel, objectsHandleButton, laye
     }
   }
 
-  function toggleLayersDrawer() {
+  function toggleSceneDrawer() {
     if (rightPanel.classList.contains('drawer-open')) {
-      closeLayersDrawer();
+      closeSceneDrawer();
     } else {
-      openLayersDrawer();
+      openSceneDrawer();
     }
   }
 
@@ -112,7 +112,7 @@ export function createDrawers({ leftPanel, rightPanel, objectsHandleButton, laye
       } else if (side === 'left') {
         closeObjectsDrawer();
       } else {
-        closeLayersDrawer();
+        closeSceneDrawer();
       }
     });
   }
@@ -125,10 +125,10 @@ export function createDrawers({ leftPanel, rightPanel, objectsHandleButton, laye
   });
 
   createDrawerHandleDrag({
-    handle: layersHandleButton,
+    handle: sceneHandleButton,
     panel: rightPanel,
     side: 'right',
-    open: toggleLayersDrawer,
+    open: toggleSceneDrawer,
   });
 
   if (isMobileQuality()) {
@@ -138,16 +138,12 @@ export function createDrawers({ leftPanel, rightPanel, objectsHandleButton, laye
     });
   } else {
     openObjectsDrawer();
-    openLayersDrawer();
+    openSceneDrawer();
   }
 
   return {
-    closeObjectsDrawer,
-    closeLayersDrawer,
+    closeSceneDrawer,
     closeMobileDrawers,
     openObjectsDrawer,
-    openLayersDrawer,
-    toggleObjectsDrawer,
-    toggleLayersDrawer,
   };
 }

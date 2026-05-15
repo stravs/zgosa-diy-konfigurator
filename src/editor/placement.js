@@ -47,7 +47,6 @@ export function createPlacementController({
   history,
   renderObjects,
   selectObject,
-  propertySheet,
   closeMobileDrawers,
   getLastGroundHit,
   setStatus,
