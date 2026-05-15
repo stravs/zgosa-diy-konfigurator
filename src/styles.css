@@ -384,6 +384,8 @@ body.show-right-panel .right-panel,
 }
 
 .bottombar {
+  position: relative;
+  z-index: 70;
   display: flex;
   align-items: center;
   gap: 18px;
@@ -394,6 +396,10 @@ body.show-right-panel .right-panel,
   font-size: 12px;
   white-space: nowrap;
   overflow-x: auto;
+}
+
+body.keyboard-open .bottombar {
+  display: none !important;
 }
 
 .bottombar kbd {
@@ -589,29 +595,80 @@ body.show-right-panel .drawer-handle-right {
   inset: 0;
   z-index: 50;
   display: grid;
-  place-items: center;
+  align-items: end;
+  justify-items: center;
+  padding-bottom: 34px;
+  background: rgba(2, 6, 23, 0);
+  transition: background 160ms ease;
+}
+
+.property-sheet-backdrop.open {
   background: rgba(2, 6, 23, 0.35);
 }
 
 .property-sheet {
-  width: min(92vw, 560px);
-  max-height: min(78vh, 620px);
+  width: min(100vw, 760px);
+  max-height: min(55vh, 520px);
   padding: 14px;
   overflow-y: auto;
   border: 1px solid rgba(148, 163, 184, 0.28);
-  border-radius: 16px;
+  border-bottom: 0;
+  border-radius: 16px 16px 0 0;
   background: rgba(15, 23, 42, 0.98);
   box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.36);
+  transform: translateY(100%);
+  will-change: transform;
+  transition: transform 220ms ease-out;
+}
+
+.property-sheet-backdrop.open .property-sheet {
+  transform: translateY(0);
+}
+
+.property-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .property-sheet h2 {
-  margin: 0 0 12px;
+  margin: 0;
   font-size: 16px;
+}
+
+.property-sheet-page {
+  color: #94a3b8;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.property-sheet-pages {
+  min-height: 0;
+}
+
+.property-sheet-section {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 12px;
+  background: rgba(30, 41, 59, 0.45);
+}
+
+.property-sheet-section h3 {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .property-sheet-fields {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -673,14 +730,63 @@ body.show-right-panel .drawer-handle-right {
 
 @media (max-width: 1100px), (pointer: coarse) {
   .property-sheet-backdrop {
-    align-items: end;
-    justify-items: center;
+    bottom: calc(58px + var(--keyboard-offset, 0px));
+    padding-bottom: 0;
   }
 
   .property-sheet {
     width: min(100vw, 560px);
+    height: auto;
+    max-height: none;
+    padding: 10px;
+    overflow-y: visible;
     border-bottom: 0;
     border-radius: 16px 16px 0 0;
+    touch-action: none;
+  }
+
+  .property-sheet-header {
+    margin-bottom: 8px;
+  }
+
+  .property-sheet h2 {
+    font-size: 12px;
+  }
+
+  .property-sheet-page {
+    font-size: 10px;
+  }
+
+  .property-sheet-section {
+    gap: 5px;
+    margin-bottom: 6px;
+    padding: 7px;
+    border-radius: 9px;
+  }
+
+  .property-sheet-section h3,
+  .property-sheet label {
+    font-size: 9px;
+  }
+
+  .property-sheet-fields {
+    gap: 6px;
+  }
+
+  .property-sheet label {
+    gap: 3px;
+  }
+
+  .property-sheet input {
+    min-height: 30px;
+    padding: 4px;
+    border-radius: 6px;
+    font-size: 12px;
+  }
+
+  .property-sheet-actions button {
+    min-height: 38px;
+    font-size: 12px;
   }
 
   .app-shell {
